@@ -11,9 +11,10 @@ env:
 matrix:
   include:
 {% for env, config in tox_environments|dictsort %}
-    - python: {{ env.split('-')[0] if env.startswith('pypy') else '{0[2]}.{0[3]}'.format(env) }}
+    - python: {{ env.split('-')[0] }}
       env:
-        - TOXENV={{ env }}{% if config.cover %},report,coveralls{% endif -%}
+        - TOXENV={{ env }}{% if config.cover %},report,coveralls{% endif %}
+
 {% endfor %}
 
 before_install:

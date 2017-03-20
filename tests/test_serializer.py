@@ -1,29 +1,11 @@
+from fixtures import *
 from asyncipc.serializer import Serialize, HeaderFormat
 from asyncipc.message import BaseMessage, message_types
-
-class Alpha(BaseMessage):
-    _fields = ['a', 'b']
-    _kwfields = {'x': 42}
-
-class Beta(Alpha):
-    _fields = ['c']
-    _kwfields = {'y': 37}
-
-
 import pytest
 
 @pytest.fixture
 def serialize():
     return Serialize(**message_types)
-
-@pytest.fixture(params=(Alpha(1,2),
-                        Beta(3,1,2,x=4,y=5),))
-def msg_obj(request):
-    yield request.param
-
-@pytest.fixture
-def alpha():
-    return Alpha(99,98)
 
 def test_dump_iter(msg_obj, serialize):
     assert len(list(serialize.dump_iter(msg_obj))) == 2

@@ -96,15 +96,3 @@ class BaseMessage(Structure):
         #     raise ValueError(txt)
         message_types[clsname] = cls
 
-
-if __name__ == '__main__':
-    class Vec(Structure):
-        _fields = ['a', 'b', 'c']
-        _kwfields = dict.fromkeys('xyz')
-
-    class Command(BaseMessage):
-        pass
-
-    print(message_types['Command']())
-    del Command
-    print(message_types['Command']())

@@ -4,9 +4,15 @@ def _runtime_dir():
     if rundir:
         return rundir
     return '/run/user/{:d}'.format(getuid())
-
-
 RUNTIME_DIR = _runtime_dir()
+
+def get_logger():
+    from sys import _getframe
+    from logging import getLogger, DEBUG, NullHandler
+    fname = _getframe(1).f_globals['__name__']
+    logr = getLogger(fname)
+    logr.addHandler(NullHandler())
+    return logr
 
 # def load_module(path):
 #     from inspect import getmodulename

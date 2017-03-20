@@ -1,15 +1,11 @@
+import fixtures
 from collections import namedtuple
 import pytest
 from asyncipc.message import BaseMessage, message_types
 
-class Alpha(BaseMessage):
-    _fields = ['a', 'b']
-    _kwfields = {'x': 42}
 
-class Beta(Alpha):
-    _fields = ['c']
-    _kwfields = {'y': 37}
-
+Alpha = fixtures.Alpha
+Beta = fixtures.Beta
 
 Param = namedtuple('Param', 'input expected')
 

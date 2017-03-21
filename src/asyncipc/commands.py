@@ -94,26 +94,3 @@ class HasCommands:
         return client_cls
 
 
-
-if __name__ == '__main__':
-    class Alpha(HasCommands):
-        @staticmethod
-        @cmd(context=CmdContext.PASS_SERVER)
-        def xyz(*args, _server=None, **kw):
-            return 'xyz', _server
-
-        @cmd
-        def abc(self, a, b, c, *args, swag=37, **kw):
-            return a, b, c, swag, args, kw
-
-        @classmethod
-        @cmd
-        def yup(cls, *args, baller=None):
-            return 'yup'
-
-    from pprint import pprint
-    for x in Alpha._commands.values():
-        pprint(x._asdict(), width=40)
-
-    C = Alpha.get_client()
-    c = C('asdf')

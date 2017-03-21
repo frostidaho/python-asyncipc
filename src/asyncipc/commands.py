@@ -22,6 +22,9 @@ class Server:
 _Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
 
 class Client:
+    def __init__(self, socket_name):
+        pass
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         # cls._commands = commands
@@ -50,27 +53,7 @@ class Client:
             return _Msg(name, bound_values.args[1:], bound_values.kwargs)
         fn.__signature__ = signature
         return fn
-        
 
-    def _method_prototype(self, *args, **kwargs):
-        name = kwargs.pop('_func_name')
-        msg = _Msg(name, args, kwargs)
-        print(_Msg)
-        return msg
-
-    # @staticmethod
-    # def _static_prototype(*args, **kwargs):
-    #     name = kwargs.pop('_func_name')
-    #     msg = _Msg(name, args, kwargs)
-    #     print(_Msg)
-    #     return msg
-
-    # @classmethod
-    # def _clsmethod_prototype(cls, *args, **kwargs):
-    #     name = kwargs.pop('_func_name')
-    #     msg = _Msg(name, args, kwargs)
-    #     print(_Msg)
-    #     return msg
 
 _FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
 class HasCommands:
@@ -116,8 +99,8 @@ if __name__ == '__main__':
     class Alpha(HasCommands):
         @staticmethod
         @cmd(context=CmdContext.PASS_SERVER)
-        def xyz(server=None):
-            return 'xyz', server
+        def xyz(*args, _server=None, **kw):
+            return 'xyz', _server
 
         @cmd
         def abc(self, a, b, c, *args, swag=37, **kw):
@@ -133,4 +116,4 @@ if __name__ == '__main__':
         pprint(x._asdict(), width=40)
 
     C = Alpha.get_client()
-    c = C()
+    c = C('asdf')

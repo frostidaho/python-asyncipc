@@ -1,6 +1,8 @@
 import inspect as _inspect
 from itertools import chain as _chain
 from weakref import WeakValueDictionary as _WeakValueDictionary
+
+
 # The StructureMeta and Structure classes are based on
 # code from the python cookbook 3rd edition
 
@@ -95,4 +97,3 @@ class BaseMessage(Structure):
         #     txt = f"Message type {clsname!r} is already registered"
         #     raise ValueError(txt)
         message_types[clsname] = cls
-

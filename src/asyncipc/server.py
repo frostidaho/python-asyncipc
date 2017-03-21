@@ -2,10 +2,12 @@
 # https://github.com/joidegn/leo-cli
 # https://pymotw.com/2/socket/uds.html
 import asyncio
+from os import path as _path
+
 # from common import RUNTIME_DIR, serializers, HeaderFormat, MsgTuple
 from . import _utils
 from .serializer import Serialize
-from os import path as _path
+
 
 class Server:
     def __init__(self, socket_name, message_types):

@@ -1,10 +1,11 @@
+import asyncio
+import logging
+
 from fixtures import *
 
-from asyncipc.server import Server
 from asyncipc.message import message_types
-import asyncio
+from asyncipc.server import Server
 
-import logging
 logr = logging.getLogger()
 logr.addHandler(logging.StreamHandler())
 logr.setLevel(logging.DEBUG)
@@ -20,4 +21,3 @@ def test_send_msg(send_msg, sockpath, alpha):
     loop.call_later(4.0, loop.stop)
     loop.run_forever()
     assert serv.msg.as_dict == alpha.as_dict
-    

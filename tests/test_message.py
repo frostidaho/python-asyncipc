@@ -1,8 +1,9 @@
-import fixtures
 from collections import namedtuple
-import pytest
-from asyncipc.message import BaseMessage, message_types
 
+import fixtures
+import pytest
+
+from asyncipc.message import BaseMessage, message_types
 
 Alpha = fixtures.Alpha
 Beta = fixtures.Beta
@@ -34,5 +35,3 @@ def test_sig_inheritance():
 def test_repr():
     a = Alpha(98, 99, x=97)
     assert repr(a) == 'Alpha(a=98, b=99, x=97)'
-    
-    

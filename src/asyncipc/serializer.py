@@ -1,10 +1,8 @@
-from struct import (
-    pack as _pack,
-    unpack as _unpack,
-    calcsize as _calcsize,
-)
-from collections import namedtuple as _namedtuple
 import json as _json
+from collections import namedtuple as _namedtuple
+from struct import calcsize as _calcsize
+from struct import pack as _pack
+from struct import unpack as _unpack
 
 _HeaderFmt = _namedtuple('_HeaderFmt', ('tag', 'data_length'))
 class HeaderFormat:
@@ -88,4 +86,3 @@ class Serialize:
     @staticmethod
     def _load_json(b_obj, *args, **kwargs):
         return _json.loads(b_obj.decode('ascii'), *args, **kwargs)
-

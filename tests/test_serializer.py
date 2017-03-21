@@ -1,7 +1,9 @@
-from fixtures import *
-from asyncipc.serializer import Serialize, HeaderFormat
-from asyncipc.message import BaseMessage, message_types
 import pytest
+from fixtures import *
+
+from asyncipc.message import BaseMessage, message_types
+from asyncipc.serializer import HeaderFormat, Serialize
+
 
 @pytest.fixture
 def serialize():
@@ -28,5 +30,3 @@ def test_loader_implemented(alpha, serialize):
     b_header = HeaderFormat.pack(b'blaas', 9000)
     with pytest.raises(NotImplementedError):
         serialize.load(b_header)
-
-    

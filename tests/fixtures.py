@@ -1,7 +1,9 @@
 import pytest
+
+from asyncipc._utils import RUNTIME_DIR
 from asyncipc.message import BaseMessage, message_types
 from asyncipc.serializer import Serialize
-from asyncipc._utils import RUNTIME_DIR
+
 
 class Alpha(BaseMessage):
     _fields = ['a', 'b']

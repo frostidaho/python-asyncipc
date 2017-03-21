@@ -1,5 +1,6 @@
 import pytest
 from asyncipc.commands import HasCommands, CmdContext, cmd
+from fixtures import sockpath
 
 
 @pytest.fixture
@@ -48,8 +49,8 @@ def Client(commander):
     return C
 
 @pytest.fixture
-def client(Client):
-    return Client()
+def client(Client, sockpath):
+    return Client(socket_path=sockpath)
 
 def test_init_subclass(Commander, method_names):
     assert method_names == set(Commander._commands)
@@ -68,16 +69,17 @@ def test_client_method_signature(commander, client, method_names):
         assert s0 == s1
 
 def test_client_method(client):
-    client.abc(1,2,3)
-    msg = client.messages.pop()
-    assert msg.name == 'abc'
-    assert msg.args == (1, 2, 3)
-    assert msg.kwargs == {'swoop':37}
+    with pytest.raises(FileNotFoundError):
+        client.abc(1,2,3)
+        msg = client.messages.pop()
+        assert msg.name == 'abc'
+        assert msg.args == (1, 2, 3)
+        assert msg.kwargs == {'swoop':37}
 
-    client.abc(1,2,3,4,5,6, swoop=None, maybe=True)
-    msg = client.messages.pop()
-    assert msg.name == 'abc'
-    assert msg.args == (1, 2, 3, 4, 5, 6)
-    assert msg.kwargs == {'swoop':None, 'maybe':True}
+        client.abc(1,2,3,4,5,6, swoop=None, maybe=True)
+        msg = client.messages.pop()
+        assert msg.name == 'abc'
+        assert msg.args == (1, 2, 3, 4, 5, 6)
+        assert msg.kwargs == {'swoop':None, 'maybe':True}
     
 

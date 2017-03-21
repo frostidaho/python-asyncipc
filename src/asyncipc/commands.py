@@ -4,6 +4,7 @@ from collections import namedtuple as _namedtuple
 from itertools import chain as _chain
 import inspect
 import types
+from .serializer2 import Serialize
     
 CmdContext = _Enum('CmdContext', 'BASIC PASS_SERVER')
 
@@ -18,6 +19,10 @@ def cmd(*func, context=CmdContext.BASIC):
 
 
 class CmdProxy:
+    def __init__(self, socket_path):
+        self.socket_path = socket_path
+
+    _serial = Serialize()
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         try:
@@ -47,6 +52,13 @@ _Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
 
 class Client(CmdProxy):
     @staticmethod
+    def _new_socket(path):
+        from socket import socket, AF_UNIX, SOCK_STREAM
+        sock = socket(AF_UNIX, SOCK_STREAM)
+        sock.connect(path)
+        return sock
+    
+    @staticmethod
     def _make_method(name, signature, original_func):
         @_wraps(original_func)
         def fn(self, *args, **kwargs):
@@ -57,7 +69,10 @@ class Client(CmdProxy):
         return fn
 
     def _send_message(self, msg):
-        print(msg)
+        header, objstr = self._serial.dump_iter(msg)
+        sock = self._new_socket(self.socket_path)
+        sock.send(header)
+        sock.send(objstr)
 
 _FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
 class HasCommands:

@@ -43,6 +43,7 @@ def Client(commander):
             msges = []
             self.messages = msges
         msges.append(msg)
+        super(C, self)._send_message(msg)
     C._send_message = fn
     return C
 
@@ -68,12 +69,11 @@ def test_client_method_signature(commander, client, method_names):
 
 def test_client_method(client):
     client.abc(1,2,3)
-    # print(dir(client))
-    print(client.messages)
     msg = client.messages.pop()
     assert msg.name == 'abc'
     assert msg.args == (1, 2, 3)
     assert msg.kwargs == {'swoop':37}
+
     client.abc(1,2,3,4,5,6, swoop=None, maybe=True)
     msg = client.messages.pop()
     assert msg.name == 'abc'

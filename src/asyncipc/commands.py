@@ -16,19 +16,15 @@ def cmd(*func, context=CmdContext.BASIC):
         return _partial(cmd, context=context)
     return fn
 
-class Server:
-    pass
 
-_Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
-
-class Client:
-    def __init__(self, socket_name):
-        pass
-
+class CmdProxy:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        # cls._commands = commands
-        for name,value in cls._commands.items():
+        try:
+            cmds = cls._commands
+        except AttributeError:
+            return
+        for name,value in cmds.items():
             fn = cls._make_fn(name, value)
             setattr(cls, name, fn)
 
@@ -40,20 +36,28 @@ class Client:
         Param = inspect.Parameter
         self_param = Param('self', Param.POSITIONAL_OR_KEYWORD)
         new_sig = inspect.Signature(_chain([self_param], funcctx.signature.parameters.values()))
-        print('new_sig is', new_sig)
+        # print('new_sig is', new_sig)
         return cls._make_method(name, new_sig, funcctx.func)
+    
+class Server(CmdProxy):
+    pass
 
+_Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
+
+
+class Client(CmdProxy):
     @staticmethod
     def _make_method(name, signature, original_func):
-        # sig = funcctx.signature
         @_wraps(original_func)
         def fn(self, *args, **kwargs):
             bound_values = signature.bind(self, *args, **kwargs)
             bound_values.apply_defaults()
-            return _Msg(name, bound_values.args[1:], bound_values.kwargs)
+            self._send_message(_Msg(name, bound_values.args[1:], bound_values.kwargs))
         fn.__signature__ = signature
         return fn
 
+    def _send_message(self, msg):
+        print(msg)
 
 _FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
 class HasCommands:

@@ -11,8 +11,8 @@ def Commander():
             return 'xyz', _server
 
         @cmd
-        def abc(self, a, b, c, *args, swag=37, **kw):
-            return a, b, c, swag, args, kw
+        def abc(self, a, b, c, *args, swoop=37, **kw):
+            return a, b, c, swoop, args, kw
 
         @classmethod
         @cmd
@@ -35,11 +35,20 @@ def commander(Commander):
 
 @pytest.fixture
 def Client(commander):
-    return commander.get_client()
+    C = commander.get_client()
+    def fn(self, msg):
+        try:
+            msges = self.messages
+        except AttributeError:
+            msges = []
+            self.messages = msges
+        msges.append(msg)
+    C._send_message = fn
+    return C
 
 @pytest.fixture
 def client(Client):
-    return Client('asdfasdf')
+    return Client()
 
 def test_init_subclass(Commander, method_names):
     assert method_names == set(Commander._commands)
@@ -56,4 +65,19 @@ def test_client_method_signature(commander, client, method_names):
         s0 = signature(getattr(commander, name))
         s1 = signature(getattr(client, name))
         assert s0 == s1
+
+def test_client_method(client):
+    client.abc(1,2,3)
+    # print(dir(client))
+    print(client.messages)
+    msg = client.messages.pop()
+    assert msg.name == 'abc'
+    assert msg.args == (1, 2, 3)
+    assert msg.kwargs == {'swoop':37}
+    client.abc(1,2,3,4,5,6, swoop=None, maybe=True)
+    msg = client.messages.pop()
+    assert msg.name == 'abc'
+    assert msg.args == (1, 2, 3, 4, 5, 6)
+    assert msg.kwargs == {'swoop':None, 'maybe':True}
+    
 

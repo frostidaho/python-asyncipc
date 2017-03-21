@@ -1,7 +1,9 @@
 from functools import wraps as _wraps, partial as _partial
 from enum import Enum as _Enum
 from collections import namedtuple as _namedtuple
-
+from itertools import chain as _chain
+import inspect
+import types
     
 CmdContext = _Enum('CmdContext', 'BASIC PASS_SERVER')
 
@@ -14,11 +16,73 @@ def cmd(*func, context=CmdContext.BASIC):
         return _partial(cmd, context=context)
     return fn
 
-_FuncCtx = _namedtuple('_FuncCtx', 'func context')
+class Server:
+    pass
+
+_Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
+
+class Client:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # cls._commands = commands
+        for name,value in cls._commands.items():
+            fn = cls._make_fn(name, value)
+            setattr(cls, name, fn)
+
+    @classmethod
+    def _make_fn(cls, name, funcctx):
+        mtype = funcctx.method_type
+        if  mtype not in {classmethod, staticmethod}:
+            return cls._make_method(name, funcctx.signature, funcctx.func)
+        Param = inspect.Parameter
+        self_param = Param('self', Param.POSITIONAL_OR_KEYWORD)
+        new_sig = inspect.Signature(_chain([self_param], funcctx.signature.parameters.values()))
+        print('new_sig is', new_sig)
+        return cls._make_method(name, new_sig, funcctx.func)
+
+    @staticmethod
+    def _make_method(name, signature, original_func):
+        # sig = funcctx.signature
+        @_wraps(original_func)
+        def fn(self, *args, **kwargs):
+            bound_values = signature.bind(self, *args, **kwargs)
+            bound_values.apply_defaults()
+            return _Msg(name, bound_values.args[1:], bound_values.kwargs)
+        fn.__signature__ = signature
+        return fn
+        
+
+    def _method_prototype(self, *args, **kwargs):
+        name = kwargs.pop('_func_name')
+        msg = _Msg(name, args, kwargs)
+        print(_Msg)
+        return msg
+
+    # @staticmethod
+    # def _static_prototype(*args, **kwargs):
+    #     name = kwargs.pop('_func_name')
+    #     msg = _Msg(name, args, kwargs)
+    #     print(_Msg)
+    #     return msg
+
+    # @classmethod
+    # def _clsmethod_prototype(cls, *args, **kwargs):
+    #     name = kwargs.pop('_func_name')
+    #     msg = _Msg(name, args, kwargs)
+    #     print(_Msg)
+    #     return msg
+
+_FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
 class HasCommands:
+    @staticmethod
+    def _get_method_type(klass, name):
+        return type(klass.__getattribute__(klass, name))
+
     @classmethod
     def _find_commands(cls):
         ga = getattr
+        signature = inspect.signature
+        get_method_type = cls._get_method_type
         commands = {}
         for name in (x for x in dir(cls) if not x.startswith('__')):
             attr = ga(cls, name)
@@ -27,19 +91,46 @@ class HasCommands:
             except AttributeError:
                 continue
             if isinstance(ctx, CmdContext):
-                commands[name] = _FuncCtx(attr, ctx)
+                sig = signature(attr)
+                mtype = get_method_type(cls, name)
+                commands[name] = _FuncCtx(attr, ctx, sig, mtype)
         cls._commands = commands
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._find_commands()
-    
-class Alpha(HasCommands):
-    @staticmethod
-    @cmd(context=CmdContext.PASS_SERVER)
-    def xyz(server=None):
-        return 'xyz', server
 
-    @cmd
-    def abc(self, *args, **kwargs):
-        return args, kwargs
+    def get_server():
+        raise NotImplementedError
+
+    @classmethod
+    def get_client(cls):
+        cname = cls.__name__
+        client_cls = type(cname + 'Client', (Client,), {'_commands': cls._commands})
+        print(client_cls)
+        return client_cls
+
+
+
+if __name__ == '__main__':
+    class Alpha(HasCommands):
+        @staticmethod
+        @cmd(context=CmdContext.PASS_SERVER)
+        def xyz(server=None):
+            return 'xyz', server
+
+        @cmd
+        def abc(self, a, b, c, *args, swag=37, **kw):
+            return a, b, c, swag, args, kw
+
+        @classmethod
+        @cmd
+        def yup(cls, *args, baller=None):
+            return 'yup'
+
+    from pprint import pprint
+    for x in Alpha._commands.values():
+        pprint(x._asdict(), width=40)
+
+    C = Alpha.get_client()
+    c = C()

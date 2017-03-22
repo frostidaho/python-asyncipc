@@ -14,5 +14,6 @@ source "$VENVPATH/bin/activate"
 # echo $(which python)
 # echo $(which pip)
 pip install -e "$DIR"
+pip install --ignore-installed ipython
 
 

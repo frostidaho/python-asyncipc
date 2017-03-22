@@ -103,4 +103,12 @@ class Client(CmdProxy):
         header, objstr = self._serial.dump_iter(msg)
         sock = self._new_socket()
         sock.send(header)
-        sock.send(objstr)    
+        sock.send(objstr)
+        return sock
+
+    def stop_server(self):
+        from ._utils import KILL_SERVER
+        msg = _Msg(KILL_SERVER, None, None)
+        sock = self._send_message(msg)
+        sock.close()
+

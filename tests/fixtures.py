@@ -1,6 +1,6 @@
 import pytest
 
-from asyncipc._utils import RUNTIME_DIR
+from asyncipc.commands import RUNTIME_DIR
 from asyncipc.message import BaseMessage, message_types
 from asyncipc.serializer import Serialize
 

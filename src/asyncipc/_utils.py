@@ -1,10 +1,10 @@
-def _runtime_dir():
-    from os import getenv, getuid
-    rundir = getenv('XDG_RUNTIME_DIR')
-    if rundir:
-        return rundir
-    return '/run/user/{:d}'.format(getuid())
-RUNTIME_DIR = _runtime_dir()
+# def _runtime_dir():
+#     from os import getenv, getuid
+#     rundir = getenv('XDG_RUNTIME_DIR')
+#     if rundir:
+#         return rundir
+#     return '/run/user/{:d}'.format(getuid())
+# RUNTIME_DIR = _runtime_dir()
 
 def get_logger():
     from sys import _getframe
@@ -14,6 +14,8 @@ def get_logger():
     logr.addHandler(NullHandler())
     return logr
 
+
+KILL_SERVER = ('stop', 'server', 'now')
 # def load_module(path):
 #     from inspect import getmodulename
 #     from importlib import util

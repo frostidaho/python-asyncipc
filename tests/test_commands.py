@@ -2,6 +2,7 @@ import pytest
 from fixtures import sockpath
 
 from asyncipc.commands import CmdContext, HasCommands, cmd
+from asyncipc import commands
 
 
 @pytest.fixture
@@ -82,3 +83,11 @@ def test_client_method(client):
         assert msg.name == 'abc'
         assert msg.args == (1, 2, 3, 4, 5, 6)
         assert msg.kwargs == {'swoop':None, 'maybe':True}
+
+
+def test_runtime_dir(monkeypatch):
+    import os
+    monkeypatch.setattr(os, 'getenv', lambda x: '/a/b/c')
+    assert commands._runtime_dir() == '/a/b/c'
+    monkeypatch.setattr(os, 'getenv', lambda x: '')
+    assert commands._runtime_dir() == '/run/user/{}'.format(os.getuid())

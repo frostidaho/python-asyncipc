@@ -22,6 +22,24 @@ def cmd(*func, context=CmdContext.BASIC):
         return _partial(cmd, context=context)
     return fn
 
+def close_other_server(path):
+    from socket import socket, AF_UNIX, SOCK_STREAM
+    sock = socket(AF_UNIX, SOCK_STREAM)
+    print(path)
+    try:
+        sock.bind(path)
+        sock.close()
+        return
+    except OSError:
+        print('server wasnt closed')
+    from .client import Client
+    client = Client(path)
+    try:
+        client.stop_server()
+    except ConnectionRefusedError:
+        os.remove(path)
+    
+
     
 _FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
 class HasCommands:
@@ -31,8 +49,7 @@ class HasCommands:
             self.socket_path = socket_path
         else:
             cname = self.__class__.__name__
-            hval = hash(self)
-            self.socket_path = os.path.join(RUNTIME_DIR, f'{cname}{hval:d}')
+            self.socket_path = os.path.join(RUNTIME_DIR, f'py_asyncipc_{cname}')
 
     @staticmethod
     def _get_method_type(klass, name):
@@ -65,10 +82,11 @@ class HasCommands:
         from .server2 import Server
         return Server
 
-    def get_server(self):
+    def get_server_loop(self):
         from asyncio import get_event_loop
         Server = self.get_server_class()
         loop = get_event_loop()
+        close_other_server(self.socket_path)
         serv = Server(self.socket_path, self)
         serv(loop)
         return loop # then loop.run_forever()

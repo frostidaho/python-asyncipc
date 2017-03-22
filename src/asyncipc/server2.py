@@ -14,11 +14,12 @@ class Server:
     def __init__(self, socket_path, obj):
         self.logr = _utils.get_logger()
         self.socket_path = socket_path
-        self.logr.debug(f'server has socket path {socket_path!r}')
+        self.logr.debug(f'server given socket path {socket_path!r}')
         self.obj = obj
         self.messages = []
 
     def __call__(self, loop):
+        self.loop = loop
         coro = asyncio.start_unix_server(self.listener, path=self.socket_path)
         loop.run_until_complete(coro)
 
@@ -34,5 +35,18 @@ class Server:
         value = await reader.read(header.data_length)
         msg = header.data_loader(value)
         logr.debug(f"Received {msg!r}")
+        res = await self.dispatcher(msg)
         self.messages.append(msg)
         writer.close()
+
+    async def dispatcher(self, msg):
+        self.logr.debug(f'received message {msg}')
+        name, args, kwargs = msg
+        try:
+            method = getattr(self.obj, name)
+            self.logr.debug('need to implement dispatcher!')
+        except TypeError:
+            if tuple(name) == _utils.KILL_SERVER:
+                self.loop.stop()
+                return
+        return NotImplemented

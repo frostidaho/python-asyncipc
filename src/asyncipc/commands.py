@@ -4,7 +4,6 @@ from collections import namedtuple as _namedtuple
 from enum import Enum as _Enum
 from functools import partial as _partial
 
-
 def _runtime_dir():
     rundir = os.getenv('XDG_RUNTIME_DIR')
     if rundir:
@@ -21,24 +20,6 @@ def cmd(*func, context=CmdContext.BASIC):
     except IndexError:
         return _partial(cmd, context=context)
     return fn
-
-def close_other_server(path):
-    from socket import socket, AF_UNIX, SOCK_STREAM
-    sock = socket(AF_UNIX, SOCK_STREAM)
-    print(path)
-    try:
-        sock.bind(path)
-        sock.close()
-        return
-    except OSError:
-        print('server wasnt closed')
-    from .client import Client
-    client = Client(path)
-    try:
-        client.stop_server()
-    except ConnectionRefusedError:
-        os.remove(path)
-    
 
     
 _FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
@@ -83,13 +64,14 @@ class HasCommands:
         return Server
 
     def get_server_loop(self):
-        from asyncio import get_event_loop
+        
+        # from asyncio import get_event_loop
         Server = self.get_server_class()
-        loop = get_event_loop()
-        close_other_server(self.socket_path)
+        # loop = get_event_loop()
+        # close_other_server(self.socket_path)
         serv = Server(self.socket_path, self)
-        serv(loop)
-        return loop # then loop.run_forever()
+        serv()
+        return serv.loop
 
     @classmethod
     def get_client_class(cls):

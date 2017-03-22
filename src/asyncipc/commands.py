@@ -46,9 +46,6 @@ class CmdProxy:
         # print('new_sig is', new_sig)
         return cls._make_method(name, new_sig, funcctx.func)
     
-class Server(CmdProxy):
-    pass
-
 _Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
 
 

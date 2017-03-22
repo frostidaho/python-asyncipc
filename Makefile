@@ -17,3 +17,8 @@ clean:
 	rm -rf '$(project_dir).venv'
 	rm -rf '$(project_dir)build'
 	rm -rf $(project_dir)src/*.egg-info
+
+
+.PHONY: test
+test:
+	tox -e 3.6-cover

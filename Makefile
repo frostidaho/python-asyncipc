@@ -5,6 +5,9 @@ project_dir := $(dir $(mkfile_path))
 isort:
 	isort --verbose --recursive src tests setup.py
 
+.PHONY: venv
+venv: .venv;
+
 .venv:
 	util/new_venv.sh
 

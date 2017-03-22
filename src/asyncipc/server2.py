@@ -12,14 +12,9 @@ from collections import namedtuple
 class Server:
     _serial = Serialize()
     def __init__(self, socket_path, obj):
-        import logging
-        logr = _utils.get_logger()
-        logr.setLevel(logging.DEBUG)
-        logr.addHandler(logging.StreamHandler())
-        self.logr = logr
-
+        self.logr = _utils.get_logger()
         self.socket_path = socket_path
-        logr.debug(f'server has socket path {socket_path!r}')
+        self.logr.debug(f'server has socket path {socket_path!r}')
         self.obj = obj
         self.messages = []
 

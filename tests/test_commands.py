@@ -1,6 +1,7 @@
 import pytest
-from asyncipc.commands import HasCommands, CmdContext, cmd
 from fixtures import sockpath
+
+from asyncipc.commands import CmdContext, HasCommands, cmd
 
 
 @pytest.fixture
@@ -81,5 +82,3 @@ def test_client_method(client):
         assert msg.name == 'abc'
         assert msg.args == (1, 2, 3, 4, 5, 6)
         assert msg.kwargs == {'swoop':None, 'maybe':True}
-    
-

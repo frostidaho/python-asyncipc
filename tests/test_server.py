@@ -46,4 +46,3 @@
 #     assert fn.msg.as_dict == dalpha
 #     assert fn2.future.result().as_dict == dalpha
 #     assert fn2.msg.as_dict == dalpha
-    

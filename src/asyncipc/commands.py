@@ -1,11 +1,13 @@
-from functools import wraps as _wraps, partial as _partial
-from enum import Enum as _Enum
-from collections import namedtuple as _namedtuple
-from itertools import chain as _chain
 import inspect
 import types
+from collections import namedtuple as _namedtuple
+from enum import Enum as _Enum
+from functools import partial as _partial
+from functools import wraps as _wraps
+from itertools import chain as _chain
+
 from .serializer2 import Serialize
-    
+
 CmdContext = _Enum('CmdContext', 'BASIC PASS_SERVER')
 
 def cmd(*func, context=CmdContext.BASIC):
@@ -111,5 +113,3 @@ class HasCommands:
         client_cls = type(cname + 'Client', (Client,), {'_commands': cls._commands})
         print(client_cls)
         return client_cls
-
-

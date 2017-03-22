@@ -1,7 +1,8 @@
+import inspect
 from collections import namedtuple
 from functools import wraps
 from itertools import chain
-import inspect
+
 from .serializer2 import Serialize
 
 

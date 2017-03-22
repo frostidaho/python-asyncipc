@@ -2,11 +2,11 @@
 # https://github.com/joidegn/leo-cli
 # https://pymotw.com/2/socket/uds.html
 import asyncio
+from collections import namedtuple
 from os import path as _path
 
 from . import _utils
 from .serializer2 import Serialize
-from collections import namedtuple
 
 
 class Server:
@@ -36,4 +36,3 @@ class Server:
         logr.debug(f"Received {msg!r}")
         self.messages.append(msg)
         writer.close()
-

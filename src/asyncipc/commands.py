@@ -6,7 +6,6 @@ from functools import partial as _partial
 from functools import wraps as _wraps
 from itertools import chain as _chain
 
-
 CmdContext = _Enum('CmdContext', 'BASIC PASS_SERVER')
 
 def cmd(*func, context=CmdContext.BASIC):

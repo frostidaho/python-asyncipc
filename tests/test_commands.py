@@ -37,7 +37,7 @@ def commander(Commander):
 
 @pytest.fixture
 def Client(commander):
-    C = commander.get_client()
+    C = commander.get_client_class()
     def fn(self, msg):
         try:
             msges = self.messages

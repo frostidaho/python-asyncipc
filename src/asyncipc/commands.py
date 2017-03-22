@@ -1,10 +1,18 @@
 import inspect
+import os
 from collections import namedtuple as _namedtuple
 from enum import Enum as _Enum
 from functools import partial as _partial
 
-CmdContext = _Enum('CmdContext', 'BASIC PASS_SERVER')
 
+def _runtime_dir():
+    rundir = os.getenv('XDG_RUNTIME_DIR')
+    if rundir:
+        return rundir
+    return '/run/user/{:d}'.format(os.getuid())
+RUNTIME_DIR = _runtime_dir()
+
+CmdContext = _Enum('CmdContext', 'BASIC PASS_SERVER')
 def cmd(*func, context=CmdContext.BASIC):
     "Mark a method as a command"
     try:
@@ -15,10 +23,17 @@ def cmd(*func, context=CmdContext.BASIC):
     return fn
 
     
-
-    
 _FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
 class HasCommands:
+    def __init__(self, *args, socket_path='', **kwargs):
+        super().__init__(*args, **kwargs)
+        if socket_path:
+            self.socket_path = socket_path
+        else:
+            cname = self.__class__.__name__
+            hval = hash(self)
+            self.socket_path = os.path.join(RUNTIME_DIR, f'{cname}{hval:d}')
+
     @staticmethod
     def _get_method_type(klass, name):
         return type(klass.__getattribute__(klass, name))
@@ -45,13 +60,26 @@ class HasCommands:
         super().__init_subclass__(**kwargs)
         cls._find_commands()
 
-    def get_server():
-        raise NotImplementedError
+    @staticmethod
+    def get_server_class():
+        from .server2 import Server
+        return Server
+
+    def get_server(self):
+        from asyncio import get_event_loop
+        Server = self.get_server_class()
+        loop = get_event_loop()
+        serv = Server(self.socket_path, self)
+        serv(loop)
+        return loop # then loop.run_forever()
 
     @classmethod
-    def get_client(cls):
+    def get_client_class(cls):
         cname = cls.__name__
         from .client import Client
         client_cls = type(cname + 'Client', (Client,), {'_commands': cls._commands})
-        print(client_cls)
         return client_cls
+
+    def get_client(self):
+        CustomClient = self.get_client_class()
+        return CustomClient(self.socket_path)

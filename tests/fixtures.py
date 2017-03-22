@@ -2,7 +2,6 @@ import pytest
 
 from asyncipc.commands import RUNTIME_DIR
 from asyncipc.message import BaseMessage, message_types
-from asyncipc.serializer import Serialize
 
 
 class Alpha(BaseMessage):
@@ -36,14 +35,3 @@ def sockpath():
     from os import path
     return path.join(RUNTIME_DIR, 'adfasfz38')
 
-@pytest.fixture
-def send_msg(sockpath):
-    def inner(msg):
-        def wrapper():
-            sock = new_socket(sockpath)
-            serial = Serialize(**message_types)
-            for bstr in serial.dump_iter(msg):
-                sock.send(bstr)
-            sock.close()
-        return wrapper
-    return inner

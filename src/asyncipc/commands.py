@@ -19,7 +19,41 @@ def cmd(*func, context=CmdContext.BASIC):
         return _partial(cmd, context=context)
     return fn
 
+def run_till_success(func, *args, swallow=(), timeout=10.0,
+                     sleep_min=0.01, sleep_max=0.05, **kwargs):
+    """Run function func(*args, **kwargs) and return its value
 
+    If it raises an exception in swallow, retry until it no longer
+    raises one of those exceptions or the timeout is reached.
+
+    Once the timeout is reached the func(*args, **kwargs) is called one more time
+    and no exceptions are trapped.
+
+    timeout, sleep_min, and sleep_max are all given in seconds.
+    """
+    try:
+        return func(*args, **kwargs)
+    except swallow:
+        pass
+
+    from time import time, sleep
+    tsleep = sleep_min
+    dt = sleep_min * 0.5
+    sleep_max_dt = sleep_max - dt
+    tmax = timeout + time()
+    while time() < tmax:
+        try:
+            return func(*args, **kwargs)
+        except swallow:
+            pass
+        sleep(tsleep)
+        if tsleep < sleep_max_dt:
+            tsleep += dt
+        else:
+            tsleep = sleep_max
+        continue
+    return func(*args, **kwargs)
+    
 class CmdProxy:
     def __init__(self, socket_path):
         self.socket_path = socket_path
@@ -50,11 +84,20 @@ _Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
 
 
 class Client(CmdProxy):
-    @staticmethod
-    def _new_socket(path):
+    connect_timeout = 2.0
+
+    def _new_socket(self):
         from socket import socket, AF_UNIX, SOCK_STREAM
         sock = socket(AF_UNIX, SOCK_STREAM)
-        sock.connect(path)
+        try:
+            sock.connect(self.socket_path)
+        except FileNotFoundError:
+            run_till_success(
+                sock.connect,
+                self.socket_path,
+                timeout=self.connect_timeout,
+                swallow=(FileNotFoundError,),
+            )
         return sock
     
     @staticmethod
@@ -69,7 +112,7 @@ class Client(CmdProxy):
 
     def _send_message(self, msg):
         header, objstr = self._serial.dump_iter(msg)
-        sock = self._new_socket(self.socket_path)
+        sock = self._new_socket()
         sock.send(header)
         sock.send(objstr)
 

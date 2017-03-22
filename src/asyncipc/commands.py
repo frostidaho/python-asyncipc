@@ -89,14 +89,15 @@ class Client(CmdProxy):
     def _new_socket(self):
         from socket import socket, AF_UNIX, SOCK_STREAM
         sock = socket(AF_UNIX, SOCK_STREAM)
+        swallow = (FileNotFoundError, ConnectionRefusedError)
         try:
             sock.connect(self.socket_path)
-        except FileNotFoundError:
+        except swallow:
             run_till_success(
                 sock.connect,
                 self.socket_path,
                 timeout=self.connect_timeout,
-                swallow=(FileNotFoundError,),
+                swallow=swallow,
             )
         return sock
     

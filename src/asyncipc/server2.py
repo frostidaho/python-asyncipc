@@ -45,8 +45,12 @@ class Server:
         self.socket_path = socket_path
         self.logr.debug(f'server given socket path {socket_path!r}')
         self.obj = obj
-        self._ctx_to_obj = {CmdContext.SERVER: self, CmdContext.BASIC: self.obj}
-        self.messages = []
+        self._init_executors()
+
+    def _init_executors(self):
+        from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+        self.thread_executor = ThreadPoolExecutor()
+        self.proc_executor = ProcessPoolExecutor()
 
     def __call__(self):
         # Not sure if all of close_other_server()
@@ -70,7 +74,6 @@ class Server:
         msg = header.data_loader(value)
         logr.debug(f"Received {msg!r}")
         res = await self.dispatcher(msg)
-        self.messages.append(msg)
         writer.close()
 
     async def dispatcher(self, msg):
@@ -78,10 +81,15 @@ class Server:
         debug(f'received message {msg}')
         ctx, name, args, kwargs = msg
         ctx = getattr(CmdContext, ctx)
-        obj = self._ctx_to_obj[ctx]
-
+        if ctx == CmdContext.SERVER:
+            obj = self
+        else:
+            obj = self.obj
         method = getattr(obj, name)
         debug('need to implement dispatcher!')
+        return NotImplemented
 
     def stop(self, *args, **kwargs):
+        self.proc_executor.shutdown(wait=False)
+        self.thread_executor.shutdown(wait=False)
         self.loop.stop()

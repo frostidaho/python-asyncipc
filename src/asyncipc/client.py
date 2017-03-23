@@ -114,6 +114,6 @@ class Client(CmdProxy):
         msg = Msg(CmdContext.SERVER.name, name, args, kwargs)
         self._send_message(msg)
 
-    def stop_server(self):
+    def server_stop(self):
         self._send_server_message('stop')
 

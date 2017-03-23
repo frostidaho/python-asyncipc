@@ -24,7 +24,7 @@ def close_other_server(path):
     client.connect_timeout = 0.5
     debug(f"Attempting to kill server {path!r}")
     try:
-        client.stop_server()
+        client.server_stop()
         debug(f"Sent kill server message")
         return True
     except ConnectionRefusedError:
@@ -83,3 +83,5 @@ class Server:
         method = getattr(obj, name)
         debug('need to implement dispatcher!')
 
+    def stop(self, *args, **kwargs):
+        self.loop.stop()

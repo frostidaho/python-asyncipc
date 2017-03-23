@@ -22,7 +22,6 @@ def get_logger():
     return logr
 
 
-KILL_SERVER = ('stop', 'server', 'now')
 # def load_module(path):
 #     from inspect import getmodulename
 #     from importlib import util

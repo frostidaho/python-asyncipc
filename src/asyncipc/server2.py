@@ -3,6 +3,7 @@
 # https://pymotw.com/2/socket/uds.html
 import asyncio
 from collections import namedtuple
+from functools import partial
 
 from .serializer2 import Serialize
 from ._utils import get_logger as _get_logger
@@ -74,11 +75,12 @@ class Server:
         msg = header.data_loader(value)
         logr.debug(f"Received {msg!r}")
         res = await self.dispatcher(msg)
+        logr.debug(f"Got result {res!r}")
         writer.close()
 
     async def dispatcher(self, msg):
         debug = self.logr.debug
-        debug(f'received message {msg}')
+        debug(f'dispatcher received message {msg}')
         ctx, name, args, kwargs = msg
         ctx = getattr(CmdContext, ctx)
         if ctx == CmdContext.SERVER:
@@ -86,8 +88,17 @@ class Server:
         else:
             obj = self.obj
         method = getattr(obj, name)
-        debug('need to implement dispatcher!')
-        return NotImplemented
+        fn = partial(method, *args, **kwargs)
+
+        if ctx in {CmdContext.SERVER, CmdContext.BLOCKING}:
+            return fn()
+        elif ctx == CmdContext.THREAD:
+            fut = await self.loop.run_in_executor(self.thread_executor, fn)
+        elif ctx == CmdContext.PROCESS:
+            fut = await self.loop.run_in_executor(self.process_executor, fn)
+        else:
+            raise NotImplementedError(f'CmdContext {ctx} has not been implemented')
+        return fut.result()
 
     def stop(self, *args, **kwargs):
         self.proc_executor.shutdown(wait=False)

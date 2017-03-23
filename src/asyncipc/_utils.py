@@ -9,8 +9,8 @@ from enum import Enum as _Enum
 from collections import namedtuple as _namedtuple
 
 
+CmdContext = _Enum('CmdContext', 'SERVER BLOCKING THREAD PROCESS')
 CmdInfo = _namedtuple('CmdInfo', 'func context signature method_type')
-CmdContext = _Enum('CmdContext', 'BASIC SERVER')
 Msg = _namedtuple('Msg', ('context', 'name', 'args', 'kwargs'))
 
 def get_logger():

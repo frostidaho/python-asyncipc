@@ -11,7 +11,7 @@ def _runtime_dir():
 RUNTIME_DIR = _runtime_dir()
 
 
-def cmd(*func, context=CmdContext.BASIC):
+def cmd(*func, context=CmdContext.BLOCKING):
     "Mark a method as a command"
     try:
         fn = func[0]

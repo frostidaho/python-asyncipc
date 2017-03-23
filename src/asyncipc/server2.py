@@ -5,7 +5,8 @@ import asyncio
 from collections import namedtuple
 
 from .serializer2 import Serialize
-from ._utils import get_logger as _get_logger, KILL_SERVER as _KILL_SERVER
+from ._utils import get_logger as _get_logger
+from ._utils import CmdContext
 
 def close_other_server(path):
     """Closer or kill any server that is bound to the socket at path"""
@@ -44,6 +45,7 @@ class Server:
         self.socket_path = socket_path
         self.logr.debug(f'server given socket path {socket_path!r}')
         self.obj = obj
+        self._ctx_to_obj = {CmdContext.SERVER: self, CmdContext.BASIC: self.obj}
         self.messages = []
 
     def __call__(self):
@@ -72,14 +74,12 @@ class Server:
         writer.close()
 
     async def dispatcher(self, msg):
-        self.logr.debug(f'received message {msg}')
-        name, args, kwargs = msg
-        try:
-            method = getattr(self.obj, name)
-            self.logr.debug('need to implement dispatcher!')
-        except TypeError:
-            if tuple(name) == _KILL_SERVER:
-                self.loop.stop()
-                return
-        return NotImplemented
+        debug = self.logr.debug
+        debug(f'received message {msg}')
+        ctx, name, args, kwargs = msg
+        ctx = getattr(CmdContext, ctx)
+        obj = self._ctx_to_obj[ctx]
+
+        method = getattr(obj, name)
+        debug('need to implement dispatcher!')
 

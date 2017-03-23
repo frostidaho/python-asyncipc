@@ -1,15 +1,15 @@
 import pytest
 from fixtures import sockpath
 
-from asyncipc.commands import CmdContext, HasCommands, cmd
+from asyncipc.commands import HasCommands, cmd
 from asyncipc import commands
-
+from asyncipc._utils import CmdContext
 
 @pytest.fixture
 def Commander():
     class Commander(HasCommands):
         @staticmethod
-        @cmd(context=CmdContext.PASS_SERVER)
+        @cmd(context=CmdContext.SERVER)
         def xyz(*args, _server=None, **kw):
             return 'xyz', _server
 

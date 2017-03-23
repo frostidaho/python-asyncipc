@@ -4,6 +4,7 @@ from functools import wraps
 from itertools import chain
 
 from .serializer2 import Serialize
+from ._utils import CmdInfo, Msg, CmdContext
 
 
 def run_till_success(func, *args, swallow=(), timeout=10.0,
@@ -41,8 +42,6 @@ def run_till_success(func, *args, swallow=(), timeout=10.0,
         continue
     return func(*args, **kwargs)
 
-_Msg = namedtuple('_Msg', ('name', 'args', 'kwargs'))
-
 
 class CmdProxy:
     def __init__(self, socket_path):
@@ -60,15 +59,16 @@ class CmdProxy:
             setattr(cls, name, fn)
 
     @classmethod
-    def _make_fn(cls, name, funcctx):
-        mtype = funcctx.method_type
+    def _make_fn(cls, name, cmd_info):
+        mtype = cmd_info.method_type
         if  mtype not in {classmethod, staticmethod}:
-            return cls._make_method(name, funcctx.signature, funcctx.func)
+            return cls._make_method(name, cmd_info)
         Param = inspect.Parameter
         self_param = Param('self', Param.POSITIONAL_OR_KEYWORD)
-        new_sig = inspect.Signature(chain([self_param], funcctx.signature.parameters.values()))
-        # print('new_sig is', new_sig)
-        return cls._make_method(name, new_sig, funcctx.func)
+        new_sig = inspect.Signature(chain([self_param], cmd_info.signature.parameters.values()))
+        d = cmd_info._asdict()
+        d['signature'] = new_sig
+        return cls._make_method(name, CmdInfo(**d))
 
 
 class Client(CmdProxy):
@@ -90,12 +90,16 @@ class Client(CmdProxy):
         return sock
     
     @staticmethod
-    def _make_method(name, signature, original_func):
+    def _make_method(name, cmd_info):
+        original_func = cmd_info.func
+        signature = cmd_info.signature
+        ctx_name = cmd_info.context.name
         @wraps(original_func)
         def fn(self, *args, **kwargs):
             bound_values = signature.bind(self, *args, **kwargs)
             bound_values.apply_defaults()
-            self._send_message(_Msg(name, bound_values.args[1:], bound_values.kwargs))
+            msg = Msg(ctx_name, name, bound_values.args[1:], bound_values.kwargs)
+            self._send_message(msg)
         fn.__signature__ = signature
         return fn
 
@@ -106,9 +110,10 @@ class Client(CmdProxy):
         sock.send(objstr)
         return sock
 
+    def _send_server_message(self, name, *args, **kwargs):
+        msg = Msg(CmdContext.SERVER.name, name, args, kwargs)
+        self._send_message(msg)
+
     def stop_server(self):
-        from ._utils import KILL_SERVER
-        msg = _Msg(KILL_SERVER, None, None)
-        sock = self._send_message(msg)
-        sock.close()
+        self._send_server_message('stop')
 

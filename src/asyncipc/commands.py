@@ -1,8 +1,7 @@
 import inspect
 import os
-from collections import namedtuple as _namedtuple
-from enum import Enum as _Enum
 from functools import partial as _partial
+from ._utils import CmdContext, CmdInfo
 
 def _runtime_dir():
     rundir = os.getenv('XDG_RUNTIME_DIR')
@@ -11,7 +10,7 @@ def _runtime_dir():
     return '/run/user/{:d}'.format(os.getuid())
 RUNTIME_DIR = _runtime_dir()
 
-CmdContext = _Enum('CmdContext', 'BASIC PASS_SERVER')
+
 def cmd(*func, context=CmdContext.BASIC):
     "Mark a method as a command"
     try:
@@ -22,7 +21,7 @@ def cmd(*func, context=CmdContext.BASIC):
     return fn
 
     
-_FuncCtx = _namedtuple('_FuncCtx', 'func context signature method_type')
+
 class HasCommands:
     def __init__(self, *args, socket_path='', **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,7 +50,7 @@ class HasCommands:
             if isinstance(ctx, CmdContext):
                 sig = signature(attr)
                 mtype = get_method_type(cls, name)
-                commands[name] = _FuncCtx(attr, ctx, sig, mtype)
+                commands[name] = CmdInfo(attr, ctx, sig, mtype)
         cls._commands = commands
 
     def __init_subclass__(cls, **kwargs):

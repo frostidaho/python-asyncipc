@@ -3,6 +3,7 @@ from collections import namedtuple as _namedtuple
 from struct import calcsize as _calcsize
 from struct import pack as _pack
 from struct import unpack as _unpack
+from ._utils import Msg
 
 _HeaderFmt = _namedtuple('_HeaderFmt', ('tag', 'data_length'))
 class HeaderFormat:
@@ -39,7 +40,6 @@ _HeaderInfo = _namedtuple(
     _HeaderFmt._fields + ('data_loader',),
 )
 
-_Msg = _namedtuple('_Msg', ('name', 'args', 'kwargs'))
 
 class Serialize:
     header_length = HeaderFormat.length
@@ -75,7 +75,7 @@ class Serialize:
 
         def load_msg(b_obj, *args, **kwargs):
             'Unpack b_obj and return a corresponding message object'
-            return _Msg._make(data_loader(b_obj, *args, **kwargs))
+            return Msg._make(data_loader(b_obj, *args, **kwargs))
 
         d_header['data_loader'] = load_msg
         return _HeaderInfo(**d_header)

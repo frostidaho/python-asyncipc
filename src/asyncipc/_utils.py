@@ -5,6 +5,13 @@
 #         return rundir
 #     return '/run/user/{:d}'.format(getuid())
 # RUNTIME_DIR = _runtime_dir()
+from enum import Enum as _Enum
+from collections import namedtuple as _namedtuple
+
+
+CmdInfo = _namedtuple('CmdInfo', 'func context signature method_type')
+CmdContext = _Enum('CmdContext', 'BASIC SERVER')
+Msg = _namedtuple('Msg', ('context', 'name', 'args', 'kwargs'))
 
 def get_logger():
     from sys import _getframe

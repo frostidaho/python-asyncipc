@@ -47,6 +47,8 @@ class Server:
         self.messages = []
 
     def __call__(self):
+        # Not sure if all of close_other_server()
+        # is still necessary https://bugs.python.org/issue28399
         close_other_server(self.socket_path)
         coro = asyncio.start_unix_server(self.listener, path=self.socket_path)
         loop = self.loop

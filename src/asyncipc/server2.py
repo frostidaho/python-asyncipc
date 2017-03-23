@@ -76,6 +76,9 @@ class Server:
         logr.debug(f"Received {msg!r}")
         res = await self.dispatcher(msg)
         logr.debug(f"Got result {res!r}")
+
+        writer.write(b'need to implement')
+        await writer.drain()
         writer.close()
 
     async def dispatcher(self, msg):

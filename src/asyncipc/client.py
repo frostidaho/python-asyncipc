@@ -6,6 +6,14 @@ from itertools import chain
 from .serializer2 import Serialize
 from ._utils import CmdInfo, Msg, CmdContext
 
+def _receive(sock, nbytes):
+    n_received = 0
+    received = []
+    while n_received < nbytes:
+        bobj = sock.recv(nbytes - n_received)
+        received.append(bobj)
+        n_received += len(bobj)
+    return b''.join(received)
 
 def run_till_success(func, *args, swallow=(), timeout=10.0,
                      sleep_min=0.01, sleep_max=0.05, **kwargs):
@@ -73,6 +81,7 @@ class CmdProxy:
 
 class Client(CmdProxy):
     connect_timeout = 2.0
+    receive_timeout = 10.0
 
     def _new_socket(self):
         from socket import socket, AF_UNIX, SOCK_STREAM
@@ -99,7 +108,7 @@ class Client(CmdProxy):
             bound_values = signature.bind(self, *args, **kwargs)
             bound_values.apply_defaults()
             msg = Msg(ctx_name, name, bound_values.args[1:], bound_values.kwargs)
-            self._send_message(msg)
+            return self._send_and_receive(msg)
         fn.__signature__ = signature
         return fn
 
@@ -109,6 +118,16 @@ class Client(CmdProxy):
         sock.sendall(header)
         sock.sendall(objstr)
         return sock
+
+    def _send_and_receive(self, msg):
+        sock = self._send_message(msg)
+        serial = self._serial
+        b_header = _receive(sock, serial.header_length)
+        info = serial.load(b_header)
+        b_obj = _receive(sock, info.data_length)
+        result = info.data_loader(b_obj)
+        sock.close()
+        return result
 
     def _send_server_message(self, name, *args, **kwargs):
         msg = Msg(CmdContext.SERVER.name, name, args, kwargs)

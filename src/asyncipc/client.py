@@ -106,8 +106,8 @@ class Client(CmdProxy):
     def _send_message(self, msg):
         header, objstr = self._serial.dump_iter(msg)
         sock = self._new_socket()
-        sock.send(header)
-        sock.send(objstr)
+        sock.sendall(header)
+        sock.sendall(objstr)
         return sock
 
     def _send_server_message(self, name, *args, **kwargs):

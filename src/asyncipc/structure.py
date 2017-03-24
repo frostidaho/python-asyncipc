@@ -86,7 +86,7 @@ def _unique_classes(klasses, instance_of=type):
 #             yield key
 
 class HookMeta(type):
-    def __new__(cls, clsname, bases, clsdict, **kw):
+    def __new__(metacls, clsname, bases, clsdict, **kw):
         hooks = []
         hooks.append(clsdict.get('_hooks', []))
         hooks.append(kw.pop('hooks', []))
@@ -99,11 +99,27 @@ class HookMeta(type):
         clsdict['_hooks'] = hooks
         kw['bases_mro'] = tuple(_unique_classes(bases, instance_of=HookMeta))
         for hook in hooks:
+            hook(metacls, clsname, bases, clsdict, kw)
+        return super().__new__(metacls, clsname, bases, clsdict)
+
+    def __init__(cls, clsname, bases, clsdict, **kw):
+        init_hooks = []
+        init_hooks.append(clsdict.get('_init_hooks', []))
+        init_hooks.append(kw.pop('init_hooks', []))
+        for klass in _unique_classes(bases, instance_of=HookMeta):
+            try:
+                init_hooks.append(klass.__getattribute__(klass, '_init_hooks'))
+            except AttributeError:
+                pass
+        init_hooks = list(dedupe(_chain(*init_hooks)))
+        clsdict['_init_hooks'] = init_hooks
+        kw['bases_mro'] = tuple(_unique_classes(bases, instance_of=HookMeta))
+        for hook in init_hooks:
             hook(cls, clsname, bases, clsdict, kw)
-        return super().__new__(cls, clsname, bases, clsdict)
+        super().__init__(clsname, bases, clsdict)
 
 
-def add_fields(cls, clsname, bases, clsdict, kw):
+def hook_add_fields(cls, clsname, bases, clsdict, kw):
     fields = []
     bases_mro = kw['bases_mro']
     fields.append(clsdict.get('_fields', []))
@@ -112,16 +128,12 @@ def add_fields(cls, clsname, bases, clsdict, kw):
     sig = _make_signature(_chain(*fields))
     clsdict['__signature__'] = sig
     clsdict['__slots__'] = list(sig.parameters.keys())
-    pass
 
-class Structure(metaclass=HookMeta, hooks=[add_fields,]):
+class Structure(metaclass=HookMeta, hooks=[hook_add_fields]):
     _fields = []
-    _kwfields = {}
     def __init__(self, *args, **kwargs):
         bound_values = self.__signature__.bind(*args, **kwargs)
-        # print(bound_values)
         bound_values.apply_defaults()
-        # print(bound_values)
         for name, value in bound_values.arguments.items():
             setattr(self, name, value)
 
@@ -138,22 +150,6 @@ class Structure(metaclass=HookMeta, hooks=[add_fields,]):
         return f'{cname}({inner})'
 
 
-class Alpha(Structure):
-    _fields = ['a', ('x', 37)]
-    pass
-
-class Beta(Alpha):
-    _fields = ['b', ('x', 98), ('y', 99)]
-
-
-    # _headers = {
-    #     'tag': '10s',
-    #     'data_length': 'I',
-    #     'message_id': 'I',
-    # }
-    # _defaults = {
-    #     'tag': 'json',
-    # }
 
 # class Beta(Alpha):
 #     _headers = {'swag': 'Q'}

@@ -31,17 +31,6 @@ def _classes_derived_from(klasses, derived_from=type):
         if isinstance(cls, derived_from):
             yield cls
 
-# def _get_fields(cls):
-#     try:
-#         yield from cls.__getattribute__(cls, '_fields')
-#     except AttributeError:
-#         pass
-#     try:
-#         kwfields = cls.__getattribute__(cls, '_kwfields')
-#         yield from kwfields.items()
-#     except AttributeError:
-#         pass
-
 def fields_from_dict(d_cls, name_filter):
     for name in name_filter(d_cls.keys()):
         try:
@@ -49,11 +38,17 @@ def fields_from_dict(d_cls, name_filter):
         except KeyError:
             continue
 
+def name_filter(keys):
+    for key in keys:
+        if key in {'_fields', '_kwfields'}:
+            yield key
+
+
 class StructureMeta(type):
     def __new__(cls, clsname, bases, clsdict):
         fields = clsdict.get('_fields', [])
         kwfields = clsdict.get('_kwfields', {})
-        x = StructureMeta._get_all_fields(bases)
+        x = StructureMeta._get_all_fields(clsdict, bases)
         print('yup')
         print(list(x))
         # print(x)
@@ -68,17 +63,12 @@ class StructureMeta(type):
         return super().__new__(cls, clsname, bases, clsdict)
 
     @staticmethod
-    def _get_all_fields(bases):
+    def _get_all_fields(clsdict, bases):
         all_classes = _classes_derived_from(bases, derived_from=StructureMeta)
+        yield from fields_from_dict(clsdict, name_filter)
         for cls in all_classes:
             print(cls, cls.__name__)
-            yield from fields_from_dict(vars(cls), StructureMeta.name_filter)
-
-    @staticmethod
-    def name_filter(keys):
-        for key in keys:
-            if key in {'_fields', '_kwfields'}:
-                yield key
+            yield from fields_from_dict(vars(cls), name_filter)
 
 class Structure(metaclass=StructureMeta):
     _fields = []
@@ -126,4 +116,5 @@ class Delta(Gamma):
 
 class Swag(Delta):
     _fields = ['baller']
+    _kwfields = {'wee': 389}
 

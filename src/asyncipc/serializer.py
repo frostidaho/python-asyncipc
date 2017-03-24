@@ -72,12 +72,27 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook]):
     def __bytes__(self):
         return _struct.pack(self._pack_format, self._id, *iter(self))
 
+    def __hash__(self):
+        return bytes(self)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return bytes(self) == bytes(other)
+        return False
+
     @classmethod
-    def from_bytes(cls, b_str):
+    def from_bytes(cls, b_str, read_fn=None):
         from struct import unpack
         pre_fmt, pre_len = cls._struct_format_prefix
         header_id = unpack(pre_fmt, b_str[:pre_len])[0]
         header_cls = cls._id_to_headers[header_id]
+        len_rest = header_cls._struct_format.length
+        delta = len(b_str) - pre_len
+        print('delta is', delta)
+        print('len(bstr)', len(b_str))
+        print('len(rest)', len_rest)
+        if delta < (len_rest - pre_len):
+            b_str += read_fn(delta)
         return header_cls(*unpack(header_cls._pack_format, b_str)[1:])
 
 class ClientHeader(BaseHeader):

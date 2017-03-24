@@ -1,13 +1,18 @@
 import inspect as _inspect
 from itertools import chain as _chain
 
-def dedupe(items):
-    """Remove duplicates from items."""
+def dedupe(items, key=None):
+    """Remove duplicates from items.
+
+    Specify key function if items are unhashable.
+    Taken from Python Cookbook 3rd edition, Chapter 1.
+    """
     seen = set()
     for item in items:
-        if item not in seen:
+        val = item if key is None else key(item)
+        if val not in seen:
             yield item
-            seen.add(item)
+            seen.add(val)
 
 def _get_parameters(fields):
     """Yield an inspect.Parameter() obj for each element in fields.
@@ -51,15 +56,14 @@ def _make_signature(fields):
             default_parms.append(param)
     return Signature(_chain(pos_parms, default_parms))
 
-def _classes_derived_from(klasses, derived_from=type):
-    "Yield the unique Structure subclasses from klasses"
-    seen = set()
+def _unique_classes(klasses, instance_of=type):
+    "Yield the unique classes which are derived from instance_of"
     total_mro = _chain(*(x.__mro__ for x in klasses))
     for cls in dedupe(total_mro):
-        if isinstance(cls, derived_from):
+        if isinstance(cls, instance_of):
             yield cls
 
-def fields_from_dict(d_cls, name_filter):
+def _fields_from_dict(d_cls, name_filter):
     for name in name_filter(d_cls.keys()):
         try:
             yield d_cls[name]
@@ -74,29 +78,36 @@ def name_filter(keys):
 
 class StructureMeta(type):
     def __new__(cls, clsname, bases, clsdict):
-        fields = clsdict.get('_fields', [])
-        kwfields = clsdict.get('_kwfields', {})
-        x = StructureMeta._get_all_fields(clsdict, bases)
-        print('yup')
-        print(list(x))
-        # print(x)
-        # parameters = _chain(
-        #     fields,
-        #     kwfields.items(),
-        #     ,
-        # )
-        # sig = make_sig(*parameters)
-        # clsdict['__signature__'] = sig
-        # clsdict['__slots__'] = tuple(sig.parameters)
+        fields = StructureMeta._get_all_fields(clsdict, bases)
+        fields = (x for x in fields if x)
+        fields2 = []
+        for x in fields:
+            try:
+                fields2.append(tuple(x.items()))
+            except AttributeError:
+                fields2.append(x)
+        fields = _chain(*fields2)
+
+        def keyfn(x):
+            if isinstance(x, str):
+                return x
+            else:
+                name, default = x
+                return name
+
+        fields = dedupe(fields, key=keyfn)
+        sig = _make_signature(fields)
+        clsdict['__signature__'] = sig
+        clsdict['__slots__'] = tuple(sig.parameters)
         return super().__new__(cls, clsname, bases, clsdict)
 
     @staticmethod
     def _get_all_fields(clsdict, bases):
-        all_classes = _classes_derived_from(bases, derived_from=StructureMeta)
-        yield from fields_from_dict(clsdict, name_filter)
+        all_classes = _unique_classes(bases, instance_of=StructureMeta)
+        yield from _fields_from_dict(clsdict, name_filter)
         for cls in all_classes:
             print(cls, cls.__name__)
-            yield from fields_from_dict(vars(cls), name_filter)
+            yield from _fields_from_dict(vars(cls), name_filter)
 
 class Structure(metaclass=StructureMeta):
     _fields = []

@@ -29,17 +29,23 @@ class Header2(Header0):
     }
 
 
-# h = Header0(4096, 1, b'asdfasldfsdfjsdlkfjasdl')
+@pytest.fixture(params=[
+    (Header0, 99, 1, {}),
+    (Header1, {'tag': b'asdf', 'data_length':9000, 'response_id':37}),
+    (Header2, 13, 99, 1, {}),
+])
+def header(request):
+    cls, *rest = request.param
+    *args, kws = rest
+    return cls(*args, **kws)
 
 
+def test_equality(header):
+    assert header == eval(repr(header))
+    assert header == header.from_bytes(bytes(header))
+    assert header == serial.BaseHeader.from_bytes(bytes(header))
 
-def test_repr():
-    h2 = Header2(1,2,3)
-    assert repr(h2) == "Header2(response_id=1, data_length=2, message_id=3, tag=b'json')"
-    assert h2 == eval(repr(h2))
-
-def test_other():
-    h2 = Header2(1,2,3)
-    assert len(set([h2, h2])) == 1
-
+def test_hash(header):
+    set_header = set([header, header])
+    assert len(set_header) == 1
 

@@ -1,5 +1,6 @@
 import inspect as _inspect
 from itertools import chain as _chain
+from collections import namedtuple
 
 def dedupe(items, key=None):
     """Remove duplicates from items.
@@ -49,7 +50,14 @@ def _make_signature(fields):
     """
     Signature, empty = _inspect.Signature, _inspect._empty
     pos_parms, default_parms = [], []
-    for param in _get_parameters(fields):
+    def keyfn(x):
+        if isinstance(x, str):
+            return x
+        else:
+            name, default = x
+            return name
+
+    for param in _get_parameters(dedupe(fields, key=keyfn)):
         if param.default == empty:
             pos_parms.append(param)
         else:
@@ -63,53 +71,50 @@ def _unique_classes(klasses, instance_of=type):
         if isinstance(cls, instance_of):
             yield cls
 
-def _fields_from_dict(d_cls, name_filter):
-    for name in name_filter(d_cls.keys()):
-        try:
-            yield d_cls[name]
-        except KeyError:
-            continue
+# _Info = namedtuple('_Info', 'cls_name key value')
+# def _fields_from_dict(name_filter, d_cls, cls_name=None):
+#     for name in name_filter(d_cls.keys()):
+#         try:
+#             yield _Info(cls_name, name, tuple(d_cls[name].items()))
+#         except KeyError:
+#             continue
 
-def name_filter(keys):
-    for key in keys:
-        if key in {'_fields', '_kwfields'}:
-            yield key
+# def name_filter(keys):
+#     attrs = {'_headers', '_defaults'}
+#     for key in keys:
+#         if key in attrs:
+#             yield key
 
-
-class StructureMeta(type):
-    def __new__(cls, clsname, bases, clsdict):
-        fields = StructureMeta._get_all_fields(clsdict, bases)
-        fields = (x for x in fields if x)
-        fields2 = []
-        for x in fields:
+class HookMeta(type):
+    def __new__(cls, clsname, bases, clsdict, **kw):
+        hooks = []
+        hooks.append(clsdict.get('_hooks', []))
+        hooks.append(kw.pop('hooks', []))
+        for klass in _unique_classes(bases, instance_of=HookMeta):
             try:
-                fields2.append(tuple(x.items()))
+                hooks.append(klass.__getattribute__(klass, '_hooks'))
             except AttributeError:
-                fields2.append(x)
-        fields = _chain(*fields2)
-
-        def keyfn(x):
-            if isinstance(x, str):
-                return x
-            else:
-                name, default = x
-                return name
-
-        fields = dedupe(fields, key=keyfn)
-        sig = _make_signature(fields)
-        clsdict['__signature__'] = sig
-        clsdict['__slots__'] = tuple(sig.parameters)
+                pass
+        hooks = list(dedupe(_chain(*hooks)))
+        clsdict['_hooks'] = hooks
+        kw['bases_mro'] = tuple(_unique_classes(bases, instance_of=HookMeta))
+        for hook in hooks:
+            hook(cls, clsname, bases, clsdict, kw)
         return super().__new__(cls, clsname, bases, clsdict)
 
-    @staticmethod
-    def _get_all_fields(clsdict, bases):
-        all_classes = _unique_classes(bases, instance_of=StructureMeta)
-        yield from _fields_from_dict(clsdict, name_filter)
-        for cls in all_classes:
-            print(cls, cls.__name__)
-            yield from _fields_from_dict(vars(cls), name_filter)
 
-class Structure(metaclass=StructureMeta):
+def add_fields(cls, clsname, bases, clsdict, kw):
+    fields = []
+    bases_mro = kw['bases_mro']
+    fields.append(clsdict.get('_fields', []))
+    for klass in bases_mro:
+        fields.append(klass.__getattribute__(klass, '_fields'))
+    sig = _make_signature(_chain(*fields))
+    clsdict['__signature__'] = sig
+    clsdict['__slots__'] = list(sig.parameters.keys())
+    pass
+
+class Structure(metaclass=HookMeta, hooks=[add_fields,]):
     _fields = []
     _kwfields = {}
     def __init__(self, *args, **kwargs):
@@ -134,26 +139,26 @@ class Structure(metaclass=StructureMeta):
 
 
 class Alpha(Structure):
-    _fields = ['a']
+    _fields = ['a', ('x', 37)]
     pass
 
-class Beta(Structure):
-    _fields = ['b']
-    pass
+class Beta(Alpha):
+    _fields = ['b', ('x', 98), ('y', 99)]
 
 
-# class Gamma(Alpha, Beta):
-#     _fields = ['c']
-#     pass
-class Gamma(Beta):
-    pass
+    # _headers = {
+    #     'tag': '10s',
+    #     'data_length': 'I',
+    #     'message_id': 'I',
+    # }
+    # _defaults = {
+    #     'tag': 'json',
+    # }
 
-class Delta(Gamma):
-    _fields = ['d']
-    _kwfields = {'wee': 37}
-
-
-class Swag(Delta):
-    _fields = ['baller']
-    _kwfields = {'wee': 389}
+# class Beta(Alpha):
+#     _headers = {'swag': 'Q'}
+# # class Beta(Structure):
+# #     _fields = ['b']
+# #     pass
+# # a = Alpha()                     # 
 

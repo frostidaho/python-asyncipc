@@ -1,3 +1,4 @@
+import os as _os
 import json as _json
 from collections import namedtuple as _namedtuple
 from struct import calcsize as _calcsize
@@ -5,27 +6,27 @@ from struct import pack as _pack
 from struct import unpack as _unpack
 from ._utils import Msg
 
-_HeaderFmt = _namedtuple('_HeaderFmt', ('tag', 'data_length'))
+_HeaderFmt = _namedtuple('_HeaderFmt', ('tag', 'data_length', 'message_id'))
 class HeaderFormat:
     _taglen = 10
-    fmt = _HeaderFmt(tag=f'{_taglen:d}s', data_length='I')
+    fmt = _HeaderFmt(tag=f'{_taglen:d}s', data_length='I', message_id='I')
     _fmt = ''.join(fmt)
     length = _calcsize(_fmt)
 
     @classmethod
-    def pack(cls, b_tag, length):
-        "Return a bytes object given a b_tag (bytes) and length (int)"
+    def pack(cls, b_tag, data_length, message_id):
+        "Return a bytes object given a b_tag (bytes), data_length (int), and message_id (int)"
         taglen = cls._taglen
         if len(b_tag) > taglen:
             raise ValueError(f"Header tag {b_tag!r} is longer than {taglen}")
-        return _pack(cls._fmt, b_tag, length)
+        return _pack(cls._fmt, b_tag, data_length, message_id)
 
     @classmethod
     def unpack(cls, bstr):
         "Unpack a _HeaderFmt object from the bytes string bstr."
-        tag, length = _unpack(cls._fmt, bstr)
+        tag, *rest = _unpack(cls._fmt, bstr)
         tag = tag.replace(b'\x00', b'')
-        return _HeaderFmt(tag, length)
+        return _HeaderFmt(tag, *rest)
 
     @classmethod
     def __repr__(cls):
@@ -42,6 +43,9 @@ _HeaderInfo = _namedtuple(
 
 
 class Serialize:
+    def __init__(self):
+        self.message_id = _os.getpid() + 1
+
     header_length = HeaderFormat.length
 
     def dump_iter(self, message, formatter='json'):
@@ -53,7 +57,8 @@ class Serialize:
             raise NotImplementedError(txt) from e
 
         objstr = dumper(message)
-        yield HeaderFormat.pack(b'json', len(objstr))
+        yield HeaderFormat.pack(formatter.encode(), len(objstr), self.message_id)
+        self.message_id += 1
         yield objstr
 
     @staticmethod

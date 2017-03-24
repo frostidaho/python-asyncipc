@@ -86,9 +86,9 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook]):
         header_cls = cls._id_to_headers[header_id]
         len_rest = header_cls._struct_format.length
         delta = len(b_str) - pre_len
-        print('delta is', delta)
-        print('len(bstr)', len(b_str))
-        print('len(rest)', len_rest)
+        # print('delta is', delta)
+        # print('len(bstr)', len(b_str))
+        # print('len(rest)', len_rest)
         if delta < (len_rest - pre_len):
             b_str += read_fn(delta)
         return header_cls(*unpack(header_cls._pack_format, b_str)[1:])
@@ -103,12 +103,3 @@ class ClientHeader(BaseHeader):
         'tag': b'json',
     }
     
-
-# class Swag(ClientHeader):
-#     _headers = {'tag': '15s', 'woops': '10s'}
-#     _defaults = {'tag': b'pickle'}
-
-# s = Swag(b'yup', 32, 1)
-# x = bytes(s)
-# from struct import pack
-# asdf = s.from_bytes(x)

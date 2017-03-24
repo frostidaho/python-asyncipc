@@ -9,19 +9,47 @@ def dedupe(items):
             yield item
             seen.add(item)
 
-def make_sig(*fields):
-        Parameter, Signature = _inspect.Parameter, _inspect.Signature
-        pos_parms = []
-        kw_parms = []
-        for field in fields:
-            if isinstance(field, str):
-                new_param = Parameter(field, Parameter.POSITIONAL_OR_KEYWORD)
-                pos_parms.append(new_param)
-            else:
-                name, default = field
-                new_param = Parameter(name, Parameter.KEYWORD_ONLY, default=default)
-                kw_parms.append(new_param)
-        return Signature(_chain(pos_parms, kw_parms))
+def _get_parameters(fields):
+    """Yield an inspect.Parameter() obj for each element in fields.
+
+    Elements in fields can be a string which corresponds to the name
+    of the parameter.
+
+    Alternatively, each element can be an iterable of length two
+    which contains the name and the default value in that order.
+    """
+    Parameter = _inspect.Parameter
+    pos_or_kw = Parameter.POSITIONAL_OR_KEYWORD
+    for field in fields:
+        if isinstance(field, str):
+            yield Parameter(field, pos_or_kw)
+        else:
+            name, default = field
+            yield Parameter(name, pos_or_kw, default=default)
+
+def _make_signature(fields):
+    """Create a signature from fields.
+
+    The signature's order may be different from the order of fields,
+    if fields which specify default values come before those that do not.
+    For example:
+        In [17]: _make_signature(['a', ('x', 99), 'b', ('y', 98)])
+        Out[18]: <Signature (a, b, x=99, y=98)>
+
+    Elements in fields can be a string which corresponds to the name
+    of the parameter.
+
+    Alternatively, each element can be an iterable of length two
+    which contains the name and the default value in that order.
+    """
+    Signature, empty = _inspect.Signature, _inspect._empty
+    pos_parms, default_parms = [], []
+    for param in _get_parameters(fields):
+        if param.default == empty:
+            pos_parms.append(param)
+        else:
+            default_parms.append(param)
+    return Signature(_chain(pos_parms, default_parms))
 
 def _classes_derived_from(klasses, derived_from=type):
     "Yield the unique Structure subclasses from klasses"

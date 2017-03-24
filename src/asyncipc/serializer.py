@@ -91,7 +91,7 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, h
         return _struct.pack(self._pack_format, self._id, *iter(self))
 
     def __hash__(self):
-        return bytes(self)
+        return hash(bytes(self))
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):

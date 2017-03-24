@@ -38,4 +38,8 @@ def test_repr():
     assert repr(h2) == "Header2(response_id=1, data_length=2, message_id=3, tag=b'json')"
     assert h2 == eval(repr(h2))
 
+def test_other():
+    h2 = Header2(1,2,3)
+    assert len(set([h2, h2])) == 1
+
 

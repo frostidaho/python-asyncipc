@@ -36,6 +36,7 @@ def header_init_hook(cls, clsname, bases, clsdict, kw):
     d = dict(inner())
     fmt = [d[x] for x in params]
     fmt = ''.join(fmt)
+    cls._d_struct_format = d
     cls._struct_format = _StructFmt(fmt, _struct.calcsize(fmt))
     cls._pack_format = cls._struct_format_prefix[0] + fmt
 
@@ -49,8 +50,15 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook]):
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
+        pack = _struct.pack
+        dfmt = self._d_struct_format
+        error = _struct.error
         for name in self._parameters:
             val = getattr(self, name)
+            try:
+                pack(dfmt[name], val)
+            except error as e:
+                raise TypeError(f"Can't set {name!r} to {val!r}") from e
             if isinstance(val, bytes):
                 setattr(self, name, val.replace(b'\x00', b''))
 

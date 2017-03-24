@@ -40,10 +40,22 @@ def header_init_hook(cls, clsname, bases, clsdict, kw):
     cls._struct_format = _StructFmt(fmt, _struct.calcsize(fmt))
     cls._pack_format = cls._struct_format_prefix[0] + fmt
 
+
+def header_doc_hook(cls, clsname, bases, clsdict, kw):
+    header_doc = f"""\
+    {clsname} is a data structure for passing messages.
+
+    To serialize a message: bytes({clsname}(...))
+    To deserialize a message: {clsname}.from_bytes(...)
+
+    {cls.__signature__!r}
+    """
+    cls.__doc__ = header_doc
+
 _n_headers = 0
 
 
-class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook]):
+class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, header_doc_hook]):
     # _struct_id_format = 'H'
     _id_to_headers = _WeakValueDictionary()
     _struct_format_prefix = _StructFmt('H', _struct.calcsize('H'))

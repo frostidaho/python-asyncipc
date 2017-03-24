@@ -71,20 +71,6 @@ def _unique_classes(klasses, instance_of=type):
         if isinstance(cls, instance_of):
             yield cls
 
-# _Info = namedtuple('_Info', 'cls_name key value')
-# def _fields_from_dict(name_filter, d_cls, cls_name=None):
-#     for name in name_filter(d_cls.keys()):
-#         try:
-#             yield _Info(cls_name, name, tuple(d_cls[name].items()))
-#         except KeyError:
-#             continue
-
-# def name_filter(keys):
-#     attrs = {'_headers', '_defaults'}
-#     for key in keys:
-#         if key in attrs:
-#             yield key
-
 class HookMeta(type):
     def __new__(metacls, clsname, bases, clsdict, **kw):
         hooks = []
@@ -152,13 +138,4 @@ class Structure(metaclass=HookMeta, hooks=[hook_add_fields]):
         inner = ', '.join(kwargs)
         cname = self.__class__.__name__
         return f'{cname}({inner})'
-
-
-
-# class Beta(Alpha):
-#     _headers = {'swag': 'Q'}
-# # class Beta(Structure):
-# #     _fields = ['b']
-# #     pass
-# # a = Alpha()                     # 
 

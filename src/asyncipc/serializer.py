@@ -13,8 +13,6 @@ def header_hook(metacls, clsname, bases, clsdict, kw):
     for k,v in clsdict.get('_headers', {}).items():
         fmt.append(v)
         fields.append(k)
-    # clsdict['_struct_format'] = fmt
-
     def apply_defaults(fields):
         defaults = clsdict.get('_defaults', {})
         for field in fields:
@@ -66,24 +64,21 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook]):
         cls._parameters = tuple(cls.__signature__.parameters)
         cls._id_to_headers[_n_headers] = cls
 
-    def __bytes__(self):
-        from struct import pack
-        fmt = self._pack_format
-        params = self._parameters
+    def __iter__(self):
         ga = getattr
-        topack = self._id, *(ga(self, x) for x in params)
-        print(topack)
-        return pack(fmt, *topack)
+        for name in self._parameters:
+            yield ga(self, name)
+
+    def __bytes__(self):
+        return _struct.pack(self._pack_format, self._id, *iter(self))
 
     @classmethod
-    def unpack(cls, b_str):
+    def from_bytes(cls, b_str):
         from struct import unpack
         pre_fmt, pre_len = cls._struct_format_prefix
         header_id = unpack(pre_fmt, b_str[:pre_len])[0]
         header_cls = cls._id_to_headers[header_id]
         return header_cls(*unpack(header_cls._pack_format, b_str)[1:])
-        # from struct import unpack
-        # return unpack('H'+self._struct_format, b_str)
 
 class ClientHeader(BaseHeader):
     _headers = {
@@ -103,4 +98,4 @@ class Swag(ClientHeader):
 s = Swag(b'yup', 32, 1)
 x = bytes(s)
 from struct import pack
-asdf = s.unpack(x)
+asdf = s.from_bytes(x)

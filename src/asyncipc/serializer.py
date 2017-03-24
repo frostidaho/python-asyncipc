@@ -8,10 +8,8 @@ _StructFmt = namedtuple('_StructFmt', 'format length')
 
 def header_hook(metacls, clsname, bases, clsdict, kw):
     fields = clsdict.get('_fields', [])
-    fmt = []
     # NOTE: this depends on the _headers dictionary being ordered
     for k,v in clsdict.get('_headers', {}).items():
-        fmt.append(v)
         fields.append(k)
     def apply_defaults(fields):
         defaults = clsdict.get('_defaults', {})
@@ -106,11 +104,11 @@ class ClientHeader(BaseHeader):
     }
     
 
-class Swag(ClientHeader):
-    _headers = {'tag': '15s', 'woops': '10s'}
-    _defaults = {'tag': b'pickle'}
+# class Swag(ClientHeader):
+#     _headers = {'tag': '15s', 'woops': '10s'}
+#     _defaults = {'tag': b'pickle'}
 
-s = Swag(b'yup', 32, 1)
-x = bytes(s)
-from struct import pack
-asdf = s.from_bytes(x)
+# s = Swag(b'yup', 32, 1)
+# x = bytes(s)
+# from struct import pack
+# asdf = s.from_bytes(x)

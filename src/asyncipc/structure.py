@@ -97,12 +97,7 @@ class HookMeta(type):
                 pass
         hooks = list(dedupe(_chain(*hooks)))
         clsdict['_hooks'] = hooks
-        kw['bases_mro'] = tuple(_unique_classes(bases, instance_of=HookMeta))
-        for hook in hooks:
-            hook(metacls, clsname, bases, clsdict, kw)
-        return super().__new__(metacls, clsname, bases, clsdict)
 
-    def __init__(cls, clsname, bases, clsdict, **kw):
         init_hooks = []
         init_hooks.append(clsdict.get('_init_hooks', []))
         init_hooks.append(kw.pop('init_hooks', []))
@@ -113,8 +108,17 @@ class HookMeta(type):
                 pass
         init_hooks = list(dedupe(_chain(*init_hooks)))
         clsdict['_init_hooks'] = init_hooks
+
+
         kw['bases_mro'] = tuple(_unique_classes(bases, instance_of=HookMeta))
-        for hook in init_hooks:
+        for hook in hooks:
+            hook(metacls, clsname, bases, clsdict, kw)
+        return super().__new__(metacls, clsname, bases, clsdict)
+
+    def __init__(cls, clsname, bases, clsdict, **kw):
+        # print('clsdict issss ', clsdict)
+        kw['bases_mro'] = tuple(_unique_classes(bases, instance_of=HookMeta))
+        for hook in clsdict['_init_hooks']:
             hook(cls, clsname, bases, clsdict, kw)
         super().__init__(clsname, bases, clsdict)
 

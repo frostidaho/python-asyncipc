@@ -85,8 +85,6 @@ class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, 
         params = tuple(cls.__signature__.parameters)
         cls._parameters = params
         pack_params = chain(('_total_data_length', '_id'), params)
-        # pack_params = (x for x in pack_params if x != 'data_length')
-        # cls._pack_params = tuple(x for x in pack_params if x != 'data_length')
         cls._pack_params = tuple(pack_params)
         cls._id_to_headers[_n_headers] = cls
 
@@ -99,7 +97,6 @@ class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, 
         ga = getattr
         vals = (ga(self, x) for x in self._pack_params)
         return _struct.pack(self._pack_format[0], *vals)
-        # return _struct.pack(self._pack_format[0], self._id, *iter(self))
 
     def __hash__(self):
         return hash(bytes(self))

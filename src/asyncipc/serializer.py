@@ -115,17 +115,36 @@ class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, 
         return dl + self._pack_format.length
 
     @classmethod
-    def from_bytes(cls, b_str, read_fn=None):
+    def from_bytes(cls, b_str):
         from struct import unpack
         pre_fmt, pre_len = cls._struct_format_prefix
         total_len, header_id = unpack(pre_fmt, b_str[:pre_len])
         header_cls = cls._id_to_headers[header_id]
         pack_fmt = header_cls._pack_format
 
-        remaining = pack_fmt.length - len(b_str)
-        if remaining > 0:
-            b_str += read_fn(remaining)
-        return header_cls(*unpack(pack_fmt.format, b_str)[2:])
+        len_b_str = len(b_str)
+        len_pack_fmt = pack_fmt.length
+
+        if len_b_str == len_pack_fmt:
+            data = unpack(pack_fmt.format, b_str)
+        elif len_b_str > len_pack_fmt:
+            data = unpack(pack_fmt.format, b_str[:len_pack_fmt])
+        else:
+            raise ValueError(f"{b_str} is not long enough to unpack!")
+        return header_cls(*data[2:])
+
+    # @classmethod
+    # def from_bytes(cls, b_str, read_fn=None):
+    #     from struct import unpack
+    #     pre_fmt, pre_len = cls._struct_format_prefix
+    #     total_len, header_id = unpack(pre_fmt, b_str[:pre_len])
+    #     header_cls = cls._id_to_headers[header_id]
+    #     pack_fmt = header_cls._pack_format
+
+    #     remaining = pack_fmt.length - len(b_str)
+    #     if remaining > 0:
+    #         b_str += read_fn(remaining)
+    #     return header_cls(*unpack(pack_fmt.format, b_str)[2:])
 
 class ClientHeader(_BaseHeader):
     _headers = {

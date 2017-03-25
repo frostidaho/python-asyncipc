@@ -45,7 +45,7 @@ def header(request):
 def test_equality(header):
     assert header == eval(repr(header))
     assert header == header.from_bytes(bytes(header))
-    assert header == serial._BaseHeader.from_bytes(bytes(header))
+    assert header == serial._BaseHeader.from_bytes(bytes(header) + b' ')
 
 def test_hash(header):
     set_header = set([header, header])
@@ -56,7 +56,5 @@ def test_partial_read(header):
     prefix_len = header._struct_format_prefix.length
     print('prefix len is', prefix_len)
     b_prefix = b_header[0:prefix_len]
-    def readfn(length):
-        print('length is', length)
-        return b_header[prefix_len:prefix_len+length+1]
-    assert header.from_bytes(b_prefix, readfn) == header
+    with pytest.raises(ValueError):
+        x = header.from_bytes(b_prefix)

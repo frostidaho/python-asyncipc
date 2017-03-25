@@ -116,7 +116,7 @@ class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, 
 
     @classmethod
     def from_bytes(cls, b_str):
-        from struct import unpack
+        unpack = _struct.unpack
         pre_fmt, pre_len = cls._struct_format_prefix
         total_len, header_id = unpack(pre_fmt, b_str[:pre_len])
         header_cls = cls._id_to_headers[header_id]

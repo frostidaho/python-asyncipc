@@ -4,7 +4,7 @@ from inspect import _empty as empty
 from weakref import WeakValueDictionary as _WeakValueDictionary
 from itertools import chain
 
-from asyncipc.structure import Structure
+from .structure import Structure
 
 _StructFmt = namedtuple('_StructFmt', 'format length')
 

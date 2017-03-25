@@ -2,6 +2,7 @@ import struct as _struct
 from collections import namedtuple
 from inspect import _empty as empty
 from weakref import WeakValueDictionary as _WeakValueDictionary
+from itertools import chain
 
 from asyncipc.structure import Structure
 
@@ -57,10 +58,10 @@ def header_doc_hook(cls, clsname, bases, clsdict, kw):
 _n_headers = 0
 
 
-class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, header_doc_hook]):
+class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, header_doc_hook]):
     # _struct_id_format = 'H'
     _id_to_headers = _WeakValueDictionary()
-    _struct_format_prefix = _StructFmt('H', _struct.calcsize('H'))
+    _struct_format_prefix = _StructFmt('IH', _struct.calcsize('IH'))
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -81,7 +82,12 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, h
         global _n_headers
         _n_headers += 1
         cls._id = _n_headers
-        cls._parameters = tuple(cls.__signature__.parameters)
+        params = tuple(cls.__signature__.parameters)
+        cls._parameters = params
+        pack_params = chain(('_total_data_length', '_id'), params)
+        # pack_params = (x for x in pack_params if x != 'data_length')
+        # cls._pack_params = tuple(x for x in pack_params if x != 'data_length')
+        cls._pack_params = tuple(pack_params)
         cls._id_to_headers[_n_headers] = cls
 
     def __iter__(self):
@@ -90,7 +96,10 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, h
             yield ga(self, name)
 
     def __bytes__(self):
-        return _struct.pack(self._pack_format[0], self._id, *iter(self))
+        ga = getattr
+        vals = (ga(self, x) for x in self._pack_params)
+        return _struct.pack(self._pack_format[0], *vals)
+        # return _struct.pack(self._pack_format[0], self._id, *iter(self))
 
     def __hash__(self):
         return hash(bytes(self))
@@ -100,20 +109,28 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, h
             return bytes(self) == bytes(other)
         return False
 
+    @property
+    def _total_data_length(self):
+        try:
+            dl = self.data_length
+        except AttributeError:
+            dl = 0
+        return dl + self._pack_format.length
+
     @classmethod
     def from_bytes(cls, b_str, read_fn=None):
         from struct import unpack
         pre_fmt, pre_len = cls._struct_format_prefix
-        header_id = unpack(pre_fmt, b_str[:pre_len])[0]
+        total_len, header_id = unpack(pre_fmt, b_str[:pre_len])
         header_cls = cls._id_to_headers[header_id]
+        pack_fmt = header_cls._pack_format
 
-        total_len = cls._pack_format.length
-        to_read = total_len - pre_len
-        if len(b_str) < total_len:
-            b_str += read_fn(to_read)
-        return header_cls(*unpack(header_cls._pack_format[0], b_str)[1:])
+        remaining = pack_fmt.length - len(b_str)
+        if remaining > 0:
+            b_str += read_fn(remaining)
+        return header_cls(*unpack(pack_fmt.format, b_str)[2:])
 
-class ClientHeader(BaseHeader):
+class ClientHeader(_BaseHeader):
     _headers = {
         'tag': '10s',
         'data_length': 'I',

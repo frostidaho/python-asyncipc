@@ -3,7 +3,7 @@ import pytest
 import asyncipc.serializer as serial
 
 
-class Header0(serial.BaseHeader):
+class Header0(serial._BaseHeader):
     _headers = {
         'data_length': 'I',
         'message_id': 'I',
@@ -14,7 +14,7 @@ class Header0(serial.BaseHeader):
     }
 
 
-class Header1(serial.BaseHeader):
+class Header1(serial._BaseHeader):
     _headers = {
         'tag': '10s',
         'data_length': 'I',
@@ -45,7 +45,7 @@ def header(request):
 def test_equality(header):
     assert header == eval(repr(header))
     assert header == header.from_bytes(bytes(header))
-    assert header == serial.BaseHeader.from_bytes(bytes(header))
+    assert header == serial._BaseHeader.from_bytes(bytes(header))
 
 def test_hash(header):
     set_header = set([header, header])

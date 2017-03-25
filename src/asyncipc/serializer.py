@@ -1,8 +1,9 @@
+import struct as _struct
 from collections import namedtuple
 from inspect import _empty as empty
-from asyncipc.structure import Structure
-import struct as _struct
 from weakref import WeakValueDictionary as _WeakValueDictionary
+
+from asyncipc.structure import Structure
 
 _StructFmt = namedtuple('_StructFmt', 'format length')
 
@@ -121,4 +122,3 @@ class ClientHeader(BaseHeader):
     _defaults = {
         'tag': b'json',
     }
-    

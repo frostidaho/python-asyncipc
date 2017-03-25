@@ -1,6 +1,7 @@
 import inspect as _inspect
-from itertools import chain as _chain
 from collections import namedtuple
+from itertools import chain as _chain
+
 
 def dedupe(items, key=None):
     """Remove duplicates from items.
@@ -138,4 +139,3 @@ class Structure(metaclass=HookMeta, hooks=[hook_add_fields]):
         inner = ', '.join(kwargs)
         cname = self.__class__.__name__
         return f'{cname}({inner})'
-

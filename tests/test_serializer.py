@@ -49,3 +49,12 @@ def test_hash(header):
     set_header = set([header, header])
     assert len(set_header) == 1
 
+def test_partial_read(header):
+    b_header = bytes(header)
+    prefix_len = header._struct_format_prefix.length
+    print('prefix len is', prefix_len)
+    b_prefix = b_header[0:prefix_len]
+    def readfn(length):
+        print('length is', length)
+        return b_header[prefix_len:prefix_len+length+1]
+    assert header.from_bytes(b_prefix, readfn) == header

@@ -38,7 +38,8 @@ def header_init_hook(cls, clsname, bases, clsdict, kw):
     fmt = ''.join(fmt)
     cls._d_struct_format = d
     cls._struct_format = _StructFmt(fmt, _struct.calcsize(fmt))
-    cls._pack_format = cls._struct_format_prefix[0] + fmt
+    pf = cls._struct_format_prefix[0] + fmt
+    cls._pack_format = _StructFmt(pf, _struct.calcsize(pf))
 
 
 def header_doc_hook(cls, clsname, bases, clsdict, kw):
@@ -88,7 +89,7 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, h
             yield ga(self, name)
 
     def __bytes__(self):
-        return _struct.pack(self._pack_format, self._id, *iter(self))
+        return _struct.pack(self._pack_format[0], self._id, *iter(self))
 
     def __hash__(self):
         return hash(bytes(self))
@@ -104,14 +105,20 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, h
         pre_fmt, pre_len = cls._struct_format_prefix
         header_id = unpack(pre_fmt, b_str[:pre_len])[0]
         header_cls = cls._id_to_headers[header_id]
-        len_rest = header_cls._struct_format.length
+        # len_rest = header_cls._struct_format.length
+
+        total_len = cls._pack_format.length
+
         delta = len(b_str) - pre_len
         # print('delta is', delta)
         # print('len(bstr)', len(b_str))
         # print('len(rest)', len_rest)
-        if delta < (len_rest - pre_len):
-            b_str += read_fn(delta)
-        return header_cls(*unpack(header_cls._pack_format, b_str)[1:])
+        # print('bstr is', len(b_str), b_str)
+        to_read = total_len - pre_len
+        if delta < to_read:
+            b_str += read_fn(to_read)
+        # print('bstr is', len(b_str), b_str)
+        return header_cls(*unpack(header_cls._pack_format[0], b_str)[1:])
 
 class ClientHeader(BaseHeader):
     _headers = {

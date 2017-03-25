@@ -105,19 +105,11 @@ class BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, h
         pre_fmt, pre_len = cls._struct_format_prefix
         header_id = unpack(pre_fmt, b_str[:pre_len])[0]
         header_cls = cls._id_to_headers[header_id]
-        # len_rest = header_cls._struct_format.length
 
         total_len = cls._pack_format.length
-
-        delta = len(b_str) - pre_len
-        # print('delta is', delta)
-        # print('len(bstr)', len(b_str))
-        # print('len(rest)', len_rest)
-        # print('bstr is', len(b_str), b_str)
         to_read = total_len - pre_len
-        if delta < to_read:
+        if len(b_str) < total_len:
             b_str += read_fn(to_read)
-        # print('bstr is', len(b_str), b_str)
         return header_cls(*unpack(header_cls._pack_format[0], b_str)[1:])
 
 class ClientHeader(BaseHeader):

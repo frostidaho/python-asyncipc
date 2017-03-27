@@ -3,6 +3,7 @@ from collections import namedtuple
 from inspect import _empty as empty
 from weakref import WeakValueDictionary as _WeakValueDictionary
 from itertools import chain
+from functools import partial
 
 from .structure import Structure
 # from asyncipc.structure import Structure
@@ -134,18 +135,6 @@ class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, 
             raise ValueError(f"{b_str} is not long enough to unpack!")
         return header_cls(*data[2:])
 
-    # @classmethod
-    # def from_bytes(cls, b_str, read_fn=None):
-    #     from struct import unpack
-    #     pre_fmt, pre_len = cls._struct_format_prefix
-    #     total_len, header_id = unpack(pre_fmt, b_str[:pre_len])
-    #     header_cls = cls._id_to_headers[header_id]
-    #     pack_fmt = header_cls._pack_format
-
-    #     remaining = pack_fmt.length - len(b_str)
-    #     if remaining > 0:
-    #         b_str += read_fn(remaining)
-    #     return header_cls(*unpack(pack_fmt.format, b_str)[2:])
 
 class ClientHeader(_BaseHeader):
     _headers = {
@@ -169,8 +158,7 @@ class ServerHeader(_BaseHeader):
         'tag': b'json',
     }
 
-
-LoadFailed = namedtuple('LoadFailed', 'header data_loader objstr_partial remaining')
+LoadFailed = namedtuple('LoadFailed', 'data_loader remaining')
 LoadSuccess = namedtuple('LoadSuccess', 'header data')
 
 class Serialize:
@@ -208,7 +196,18 @@ class Serialize:
         from pickle import dumps
         return dumps(message_tupl)
 
-    def load(self, b_header):
+    def load(self, *b_data):
+        b_header = b''.join(b_data)
+
+        unpack = _struct.unpack
+        pre_fmt, pre_len = _BaseHeader._struct_format_prefix
+        total_len, header_id = _struct.unpack(pre_fmt, b_header[:pre_len])
+        len_b_header = len(b_header)
+
+        if total_len > len_b_header:
+            fn = partial(self.load, b_header)
+            return LoadFailed(fn, total_len - len_b_header)
+
         header = _BaseHeader.from_bytes(b_header)
         tag = header.tag.decode()
 
@@ -218,20 +217,8 @@ class Serialize:
         except AttributeError as e:
             txt = f"data_loader {loader_name!r} doesn't exist!"
             raise NotImplementedError(txt) from e
-
-        len_b_header = len(b_header)
-        data_len = header.data_length
         header_len = header._pack_format.length
-        total_len = header_len + data_len
-        if len_b_header >= total_len:
-            return LoadSuccess(header, data_loader(b_header[header_len:total_len]))
-        elif header_len < len_b_header < total_len:
-            objstr_partial = b_header[header_len:]
-            remaining = data_len - len(objstr_partial)
-        else:
-            objstr_partial = b''
-            remaining = data_len
-        return LoadFailed(header, data_loader, objstr_partial, remaining)
+        return LoadSuccess(header, data_loader(b_header[header_len:total_len]))
 
     @staticmethod
     def _load_json(b_obj, *args, **kwargs):

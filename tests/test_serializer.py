@@ -86,8 +86,8 @@ def test_serialize_load_fail(client_serializer, formatter):
 
     loaded = s.load(bobj[:-1])
     assert isinstance(loaded, serial.LoadFailed)
-    assert header == loaded.header
     assert loaded.remaining == 1
-    assert len(loaded.objstr_partial) == header.data_length - 1
-    data = loaded.data_loader(loaded.objstr_partial + bobj[-1:])
-    assert tuple(data) == msg
+    loaded2 = loaded.data_loader(bobj[-1:])
+    assert isinstance(loaded2, serial.LoadSuccess)
+    assert loaded2.header == header
+    assert tuple(loaded2.data) == msg

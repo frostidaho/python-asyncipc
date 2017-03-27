@@ -20,16 +20,21 @@ def cmd(*func, context=CmdContext.BLOCKING):
         return _partial(cmd, context=context)
     return fn
 
-    
 
 class HasCommands:
-    def __init__(self, *args, socket_path='', **kwargs):
-        super().__init__(*args, **kwargs)
-        if socket_path:
-            self.socket_path = socket_path
-        else:
+    @property
+    def socket_path(self):
+        try:
+            return self._socket_path
+        except AttributeError:
             cname = self.__class__.__name__
-            self.socket_path = os.path.join(RUNTIME_DIR, f'py_asyncipc_{cname}')
+            sp = os.path.join(RUNTIME_DIR, f'py_asyncipc_{cname}')
+            self._socket_path = sp
+            return sp
+
+    @socket_path.setter
+    def socket_path(self, value):
+        self._socket_path = value
 
     @staticmethod
     def _get_method_type(klass, name):
@@ -62,13 +67,11 @@ class HasCommands:
         from .server import Server
         return Server
 
-    def get_server_loop(self):
-        
-        # from asyncio import get_event_loop
+    def get_server_loop(self, socket_path=None):
+        if socket_path is None:
+            socket_path = self.socket_path
         Server = self.get_server_class()
-        # loop = get_event_loop()
-        # close_other_server(self.socket_path)
-        serv = Server(self.socket_path, self)
+        serv = Server(socket_path, self)
         serv()
         return serv.loop
 
@@ -79,6 +82,8 @@ class HasCommands:
         client_cls = type(cname + 'Client', (Client,), {'_commands': cls._commands})
         return client_cls
 
-    def get_client(self):
+    def get_client(self, socket_path=None):
+        if socket_path is None:
+            socket_path = self.socket_path
         CustomClient = self.get_client_class()
-        return CustomClient(self.socket_path)
+        return CustomClient(socket_path)

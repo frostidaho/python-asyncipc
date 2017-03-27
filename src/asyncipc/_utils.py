@@ -12,6 +12,7 @@ from collections import namedtuple as _namedtuple
 CmdContext = _Enum('CmdContext', 'SERVER BLOCKING THREAD PROCESS')
 CmdInfo = _namedtuple('CmdInfo', 'func context signature method_type')
 Msg = _namedtuple('Msg', ('context', 'name', 'args', 'kwargs'))
+RECEIVED_MSG = ('RECEIVED', 'MSG')
 
 def get_logger():
     from sys import _getframe

@@ -8,6 +8,7 @@ from functools import partial
 from .serializer import Serialize, ServerHeader, LoadSuccess, LoadFailed
 from ._utils import get_logger as _get_logger
 from ._utils import CmdContext, INITIAL_MSG_LEN
+from ._utils import RECEIVED_MSG
 
 def close_other_server(path):
     """Closer or kill any server that is bound to the socket at path"""
@@ -47,6 +48,7 @@ class Server:
         self.logr.debug(f'server given socket path {socket_path!r}')
         self.obj = obj
         self._init_executors()
+        self.message_id = 0
 
     def _init_executors(self):
         from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -76,10 +78,22 @@ class Server:
         logr.debug(f"In listener!")
         loaded = await self.get_header(reader)
         logr.debug(f"listener() received {loaded!r}")
+        want_result = loaded.header.want_result
+        dump = self._serial.dump
+
+        if want_result:
+            mid = self.message_id
+            self.message_id += 1
+            bmsg = dump(RECEIVED_MSG, message_id=mid)
+            writer.write(bmsg)
+
         res = await self.dispatcher(loaded.header, loaded.data)
         logr.debug(f"listener() got result {res!r}")
 
-        writer.write(b'need to implement')
+        if want_result:
+            bmsg = dump(res, message_id=mid)
+            writer.write(bmsg)
+
         await writer.drain()
         writer.close()
 

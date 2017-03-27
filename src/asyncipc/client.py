@@ -4,7 +4,7 @@ from functools import wraps
 from itertools import chain
 
 # from .serializer import Serialize
-from ._utils import CmdInfo, Msg, CmdContext, INITIAL_MSG_LEN
+from ._utils import CmdInfo, Msg, CmdContext, INITIAL_MSG_LEN, RECEIVED_MSG
 from . import serializer as serial
 from .serializer import LoadFailed, LoadSuccess
 
@@ -127,15 +127,22 @@ class Client(CmdProxy):
         sock = self._new_socket()
         sock.sendall(objstr)
 
-        b_data = sock.recv(INITIAL_MSG_LEN)
-        loaded = self._serial.load(b_data)
-        if isinstance(loaded, LoadSuccess):
-            sock.close()
-            return loaded
-        else:
-            b_data = _receive(sock, loaded.remaining)
-            sock.close()
-            return loaded.data_loader(b_data)
+        load = self._serial.load
+
+        def readit():
+            b_data = sock.recv(INITIAL_MSG_LEN)
+            loaded = load(b_data)
+            if isinstance(loaded, LoadSuccess):
+                return loaded
+            else:
+                b_data = _receive(sock, loaded.remaining)
+                return loaded.data_loader(b_data)
+
+        ack = readit()
+        assert tuple(ack.data) == RECEIVED_MSG
+        res = readit()
+        sock.close()
+        return res
 
     def _send_server_message(self, name, *args, **kwargs):
         msg = Msg(CmdContext.SERVER.name, name, args, kwargs)

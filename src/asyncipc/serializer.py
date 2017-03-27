@@ -150,7 +150,6 @@ class ClientHeader(_BaseHeader):
 
 class ServerHeader(_BaseHeader):
     _headers = {
-        'message_id': 'I',
         'data_length': 'I',
         'tag': '10s',
     }

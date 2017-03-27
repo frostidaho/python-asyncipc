@@ -48,7 +48,6 @@ class Server:
         self.logr.debug(f'server given socket path {socket_path!r}')
         self.obj = obj
         self._init_executors()
-        self.message_id = 0
 
     def _init_executors(self):
         from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -82,16 +81,14 @@ class Server:
         dump = self._serial.dump
 
         if want_result:
-            mid = self.message_id
-            self.message_id += 1
-            bmsg = dump(RECEIVED_MSG, message_id=mid)
+            bmsg = dump(RECEIVED_MSG)
             writer.write(bmsg)
 
         res = await self.dispatcher(loaded.header, loaded.data)
         logr.debug(f"listener() got result {res!r}")
 
         if want_result:
-            bmsg = dump(res, message_id=mid)
+            bmsg = dump(res)
             writer.write(bmsg)
 
         await writer.drain()

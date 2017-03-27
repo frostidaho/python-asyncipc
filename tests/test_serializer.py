@@ -30,6 +30,13 @@ class Header2(Header0):
         'response_id': 'I',
     }
 
+@pytest.fixture(params=['json', 'pickle'])
+def formatter(request):
+    return request.param
+
+@pytest.fixture
+def client_serializer():
+    return serial.Serialize(serial.ClientHeader)
 
 @pytest.fixture(params=[
     (Header0, 99, 1, {}),
@@ -58,3 +65,16 @@ def test_partial_read(header):
     b_prefix = b_header[0:prefix_len]
     with pytest.raises(ValueError):
         x = header.from_bytes(b_prefix)
+
+def test_serialize_dump_and_load(client_serializer, formatter):
+    s = client_serializer
+    msg = (1,2,'zz', True, False, {'a':37, 'b':42})
+    bobj = s.dump(msg, want_result=False, formatter=formatter)
+    header = serial._BaseHeader.from_bytes(bobj)
+    assert isinstance(header, serial.ClientHeader)
+    assert header.want_result == False
+    loaded = s.load(bobj)
+    assert isinstance(loaded, serial.LoadSuccess)
+    assert tuple(loaded.data) == msg
+    assert loaded.header == header
+    

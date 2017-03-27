@@ -149,7 +149,6 @@ class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, 
 
 class ClientHeader(_BaseHeader):
     _headers = {
-        'message_id': 'I',
         'data_length': 'I',
         'want_result': '?',
         'tag': '10s',
@@ -169,3 +168,80 @@ class ServerHeader(_BaseHeader):
     _defaults = {
         'tag': b'json',
     }
+
+
+LoadFailed = namedtuple('LoadFailed', 'header data_loader objstr_partial remaining')
+LoadSuccess = namedtuple('LoadSuccess', 'header data')
+
+class Serialize:
+    def __init__(self, header_cls, **header_defaults):
+        self.header_cls = header_cls
+        self.header_defaults = header_defaults
+
+    def dump(self, message, formatter='pickle', **kwargs):
+        dumper_name = f'_dump_{formatter}'
+        try:
+            dumper = getattr(self, dumper_name)
+        except AttributeError as e:
+            txt = f"data dumper {dumper_name!r} doesn't exist!"
+            raise NotImplementedError(txt) from e
+
+        hd = self.header_defaults.copy()
+        hd.update(kwargs)
+
+        objstr = dumper(message)
+        header = self.header_cls(
+            data_length=len(objstr),
+            tag=formatter.encode(),
+            **hd
+        )
+        return b''.join((bytes(header), objstr))
+
+    @staticmethod
+    def _dump_json(message_tupl):
+        from json import dumps
+        objstr = dumps(message_tupl, ensure_ascii=True)
+        return objstr.encode('ascii')
+
+    @staticmethod
+    def _dump_pickle(message_tupl):
+        from pickle import dumps
+        return dumps(message_tupl)
+
+    def load(self, b_header):
+        header = _BaseHeader.from_bytes(b_header)
+        tag = header.tag.decode()
+
+        loader_name = f'_load_{tag}'
+        try:
+            data_loader = getattr(self, loader_name)
+        except AttributeError as e:
+            txt = f"data_loader {loader_name!r} doesn't exist!"
+            raise NotImplementedError(txt) from e
+
+        len_b_header = len(b_header)
+        data_len = header.data_length
+        header_len = header._pack_format.length
+        total_len = header_len + data_len
+        if len_b_header >= total_len:
+            return LoadSuccess(header, data_loader(b_header[header_len:total_len]))
+        elif header_len < len_b_header < total_len:
+            objstr_partial = b_header[header_len:]
+            remaining = data_len - (objstr_partial)
+        else:
+            objstr_partial = b''
+            remaining = data_len
+        return LoadFailed(header, data_loader, objstr_partial, remaining)
+
+    @staticmethod
+    def _load_json(b_obj, *args, **kwargs):
+        from json import loads
+        return loads(b_obj.decode('ascii'), *args, **kwargs)
+
+    @staticmethod
+    def _load_pickle(b_obj, *args, **kwargs):
+        from pickle import loads
+        return loads(b_obj, *args, **kwargs)
+
+
+

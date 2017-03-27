@@ -10,8 +10,13 @@ from asyncipc.commands import RUNTIME_DIR
 #     return sock
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def sockpath():
     from os import path
-    return path.join(RUNTIME_DIR, 'adfasfz38')
+    import random
+    import string
+    name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+    return path.join(RUNTIME_DIR, name)
+
+
 

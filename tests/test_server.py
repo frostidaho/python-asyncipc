@@ -2,6 +2,7 @@ import pytest
 import asyncio
 from asyncipc.commands import HasCommands, cmd
 from threading import Thread
+from fixtures import sockpath
 
 @pytest.fixture
 def CmdPower():
@@ -29,8 +30,10 @@ def CmdPower():
     return CmdPower
 
 @pytest.fixture
-def cmdpower(CmdPower):
-    return CmdPower()
+def cmdpower(CmdPower, sockpath):
+    c = CmdPower()
+    c.socket_path = sockpath
+    return c
 
 def thread_server(command_obj):
     def fn(loop):
@@ -48,11 +51,11 @@ def test_cmd_power(cmdpower):
     assert cmdpower.pow_instance(2) == 4
     assert cmdpower.pow_class(2) == 8
 
-# def test_server(cmdpower):
-#     t = thread_server(cmdpower)
-#     client = cmdpower.get_client()
-#     client.server_stop()
-#     t.join()
+def test_server(cmdpower):
+    t = thread_server(cmdpower)
+    client = cmdpower.get_client()
+    client.server_stop()
+    t.join()
 
 def test_server_fn(cmdpower):
     t = thread_server(cmdpower)

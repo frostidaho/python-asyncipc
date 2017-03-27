@@ -3,11 +3,11 @@ import pytest
 from asyncipc.commands import RUNTIME_DIR
 
 
-def new_socket(path):
-    from socket import socket, AF_UNIX, SOCK_STREAM
-    sock = socket(AF_UNIX, SOCK_STREAM)
-    sock.connect(path)
-    return sock
+# def new_socket(path):
+#     from socket import socket, AF_UNIX, SOCK_STREAM
+#     sock = socket(AF_UNIX, SOCK_STREAM)
+#     sock.connect(path)
+#     return sock
 
 
 @pytest.fixture

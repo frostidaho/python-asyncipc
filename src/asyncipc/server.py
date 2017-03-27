@@ -5,9 +5,9 @@ import asyncio
 from collections import namedtuple
 from functools import partial
 
-from .serializer import Serialize
+from .serializer import Serialize, ServerHeader, LoadSuccess, LoadFailed
 from ._utils import get_logger as _get_logger
-from ._utils import CmdContext
+from ._utils import CmdContext, INITIAL_MSG_LEN
 
 def close_other_server(path):
     """Closer or kill any server that is bound to the socket at path"""
@@ -36,7 +36,7 @@ def close_other_server(path):
 
 
 class Server:
-    _serial = Serialize()
+    _serial = Serialize(ServerHeader)
     def __init__(self, socket_path, obj, loop=None):
         if loop is None:
             self.loop = asyncio.get_event_loop()
@@ -63,28 +63,30 @@ class Server:
         return loop
 
     async def get_header(self, reader):
-        serial = self._serial
-        data = await reader.read(serial.header_length)
-        return serial.load(data)
+        load = self._serial.load
+        data = await reader.read(INITIAL_MSG_LEN)
+        loaded = load(data)
+        if isinstance(loaded, LoadSuccess):
+            return loaded
+        data = await reader.read(loaded.remaining)
+        return loaded.data_loader(data)
 
     async def listener(self, reader, writer):
         logr = self.logr
         logr.debug(f"In listener!")
-        header = await self.get_header(reader)
-        value = await reader.read(header.data_length)
-        msg = header.data_loader(value)
-        logr.debug(f"Received {msg!r}")
-        res = await self.dispatcher(msg)
-        logr.debug(f"Got result {res!r}")
+        loaded = await self.get_header(reader)
+        logr.debug(f"listener() received {loaded!r}")
+        res = await self.dispatcher(loaded.header, loaded.data)
+        logr.debug(f"listener() got result {res!r}")
 
         writer.write(b'need to implement')
         await writer.drain()
         writer.close()
 
-    async def dispatcher(self, msg):
+    async def dispatcher(self, header, data):
         debug = self.logr.debug
-        debug(f'dispatcher received message {msg}')
-        ctx, name, args, kwargs = msg
+        debug(f'dispatcher received message {header!r} and {data!r}')
+        ctx, name, args, kwargs = data
         ctx = getattr(CmdContext, ctx)
         if ctx == CmdContext.SERVER:
             obj = self

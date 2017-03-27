@@ -21,6 +21,7 @@ def get_logger():
     logr.addHandler(NullHandler())
     return logr
 
+INITIAL_MSG_LEN = 4096
 
 # def load_module(path):
 #     from inspect import getmodulename

@@ -3,8 +3,10 @@ from collections import namedtuple
 from functools import wraps
 from itertools import chain
 
-from .serializer import Serialize
-from ._utils import CmdInfo, Msg, CmdContext
+# from .serializer import Serialize
+from ._utils import CmdInfo, Msg, CmdContext, INITIAL_MSG_LEN
+from . import serializer as serial
+from .serializer import LoadFailed, LoadSuccess
 
 def _receive(sock, nbytes):
     n_received = 0
@@ -55,7 +57,7 @@ class CmdProxy:
     def __init__(self, socket_path):
         self.socket_path = socket_path
 
-    _serial = Serialize()
+    _serial = serial.Serialize(serial.ClientHeader)
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         try:
@@ -112,22 +114,28 @@ class Client(CmdProxy):
         fn.__signature__ = signature
         return fn
 
-    def _send_message(self, msg):
-        header, objstr = self._serial.dump_iter(msg)
+    def _send_message(self, msg, **kwargs):
+        kwargs['want_result'] = False
+        objstr = self._serial.dump(msg, **kwargs)
         sock = self._new_socket()
-        sock.sendall(header)
         sock.sendall(objstr)
-        return sock
-
-    def _send_and_receive(self, msg):
-        sock = self._send_message(msg)
-        serial = self._serial
-        b_header = _receive(sock, serial.header_length)
-        info = serial.load(b_header)
-        b_obj = _receive(sock, info.data_length)
-        result = info.data_loader(b_obj)
         sock.close()
-        return result
+        return True
+
+    def _send_and_receive(self, msg, **kwargs):
+        objstr = self._serial.dump(msg, **kwargs)
+        sock = self._new_socket()
+        sock.sendall(objstr)
+
+        b_data = sock.recv(INITIAL_MSG_LEN)
+        loaded = self._serial.load(b_data)
+        if isinstance(loaded, LoadSuccess):
+            sock.close()
+            return loaded
+        else:
+            b_data = _receive(sock, loaded.remaining)
+            sock.close()
+            return loaded.data_loader(b_data)
 
     def _send_server_message(self, name, *args, **kwargs):
         msg = Msg(CmdContext.SERVER.name, name, args, kwargs)

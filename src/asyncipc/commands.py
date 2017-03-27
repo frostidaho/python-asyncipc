@@ -59,7 +59,7 @@ class HasCommands:
 
     @staticmethod
     def get_server_class():
-        from .server2 import Server
+        from .server import Server
         return Server
 
     def get_server_loop(self):

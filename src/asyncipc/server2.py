@@ -5,7 +5,7 @@ import asyncio
 from collections import namedtuple
 from functools import partial
 
-from .serializer2 import Serialize
+from .serializer import Serialize
 from ._utils import get_logger as _get_logger
 from ._utils import CmdContext
 

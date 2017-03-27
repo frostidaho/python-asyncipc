@@ -3,7 +3,7 @@ from collections import namedtuple
 from functools import wraps
 from itertools import chain
 
-from .serializer2 import Serialize
+from .serializer import Serialize
 from ._utils import CmdInfo, Msg, CmdContext
 
 def _receive(sock, nbytes):

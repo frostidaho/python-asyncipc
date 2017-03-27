@@ -4,7 +4,8 @@ from inspect import _empty as empty
 from weakref import WeakValueDictionary as _WeakValueDictionary
 from itertools import chain
 
-from .structure import Structure
+# from .structure import Structure
+from asyncipc.structure import Structure
 
 _StructFmt = namedtuple('_StructFmt', 'format length')
 
@@ -148,9 +149,22 @@ class _BaseHeader(Structure, hooks=[header_hook], init_hooks=[header_init_hook, 
 
 class ClientHeader(_BaseHeader):
     _headers = {
-        'tag': '10s',
-        'data_length': 'I',
         'message_id': 'I',
+        'data_length': 'I',
+        'want_result': '?',
+        'tag': '10s',
+    }
+    _defaults = {
+        'want_result': True,
+        'tag': b'json',
+    }
+
+
+class ServerHeader(_BaseHeader):
+    _headers = {
+        'message_id': 'I',
+        'data_length': 'I',
+        'tag': '10s',
     }
     _defaults = {
         'tag': b'json',

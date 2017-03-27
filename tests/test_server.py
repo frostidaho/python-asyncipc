@@ -32,31 +32,39 @@ def CmdPower():
 def cmdpower(CmdPower):
     return CmdPower()
 
+def thread_server(command_obj):
+    def fn(loop):
+        asyncio.set_event_loop(loop)
+        loop = command_obj.get_server_loop()
+        loop.run_forever()
+    loop = asyncio.get_event_loop()
+    t = Thread(target=fn, args=(loop,))
+    t.start()
+    return t
+
 def test_cmd_power(cmdpower):
     assert cmdpower.pow(1, 3) == 1
     assert cmdpower.pow(2, 3) == 8
     assert cmdpower.pow_instance(2) == 4
     assert cmdpower.pow_class(2) == 8
 
-def test_server(cmdpower):
-    serv_loop = cmdpower.get_server_loop()
-    t = Thread(target=serv_loop.run_forever)
-    t.start()
-    client = cmdpower.get_client()
-    client.server_stop()
-    t.join()
-
-    
-# def test_server_fn(cmdpower):
-#     serv_loop = cmdpower.get_server_loop()
-#     t = Thread(target=serv_loop.run_forever)
-#     t.start()
+# def test_server(cmdpower):
+#     t = thread_server(cmdpower)
 #     client = cmdpower.get_client()
-#     cmds = {'pow', 'pow_instance', 'pow_class'}
-#     assert (cmds & set(dir(client))) == cmds
-#     assert client.pow(2,5) == 32
 #     client.server_stop()
 #     t.join()
+
+def test_server_fn(cmdpower):
+    t = thread_server(cmdpower)
+    client = cmdpower.get_client()
+    cmds = {'pow', 'pow_instance', 'pow_class'}
+    assert (cmds & set(dir(client))) == cmds
+    assert client.pow(2,5).data == 32
+    assert client.pow(2, 3).data == 8
+    assert client.pow_instance(2).data == 4
+    assert client.pow_class(2).data == 8
+    client.server_stop()
+    t.join()
 
     
 

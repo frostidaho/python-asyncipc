@@ -227,7 +227,7 @@ class Serialize:
             return LoadSuccess(header, data_loader(b_header[header_len:total_len]))
         elif header_len < len_b_header < total_len:
             objstr_partial = b_header[header_len:]
-            remaining = data_len - (objstr_partial)
+            remaining = data_len - len(objstr_partial)
         else:
             objstr_partial = b''
             remaining = data_len

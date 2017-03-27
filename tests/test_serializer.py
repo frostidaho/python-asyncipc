@@ -78,3 +78,16 @@ def test_serialize_dump_and_load(client_serializer, formatter):
     assert tuple(loaded.data) == msg
     assert loaded.header == header
     
+def test_serialize_load_fail(client_serializer, formatter):
+    s = client_serializer
+    msg = (1,2,'zz', True, False, {'a':37, 'b':42})
+    bobj = s.dump(msg, want_result=False, formatter=formatter)
+    header = serial._BaseHeader.from_bytes(bobj)
+
+    loaded = s.load(bobj[:-1])
+    assert isinstance(loaded, serial.LoadFailed)
+    assert header == loaded.header
+    assert loaded.remaining == 1
+    assert len(loaded.objstr_partial) == header.data_length - 1
+    data = loaded.data_loader(loaded.objstr_partial + bobj[-1:])
+    assert tuple(data) == msg

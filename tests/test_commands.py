@@ -1,7 +1,8 @@
 import pytest
+import os
 from fixtures import sockpath
 
-from asyncipc.commands import HasCommands, cmd
+from asyncipc.commands import HasCommands, cmd, RUNTIME_DIR, DEFAULT_SOCK_PREFIX
 from asyncipc import commands
 from asyncipc._utils import CmdContext
 
@@ -91,3 +92,17 @@ def test_runtime_dir(monkeypatch):
     assert commands._runtime_dir() == '/a/b/c'
     monkeypatch.setattr(os, 'getenv', lambda x: '')
     assert commands._runtime_dir() == '/run/user/{}'.format(os.getuid())
+
+
+def test_sock_path(Commander):
+    c = Commander()
+    assert c.socket_path.startswith(RUNTIME_DIR)
+    assert commands._runtime_dir() == RUNTIME_DIR
+    assert os.path.basename(c.socket_path) == DEFAULT_SOCK_PREFIX + 'Commander'
+    c = Commander()
+    spath = '/tmp/a/b/c'
+    c.socket_path = spath
+    assert c.socket_path == spath
+    client = c.get_client()
+    assert c.socket_path == spath
+    

@@ -9,6 +9,7 @@ def _runtime_dir():
         return rundir
     return '/run/user/{:d}'.format(os.getuid())
 RUNTIME_DIR = _runtime_dir()
+DEFAULT_SOCK_PREFIX = 'py_asyncipc_'
 
 
 def cmd(*func, context=CmdContext.BLOCKING):
@@ -28,7 +29,7 @@ class HasCommands:
             return self._socket_path
         except AttributeError:
             cname = self.__class__.__name__
-            sp = os.path.join(RUNTIME_DIR, f'py_asyncipc_{cname}')
+            sp = os.path.join(RUNTIME_DIR, DEFAULT_SOCK_PREFIX + cname)
             self._socket_path = sp
             return sp
 
